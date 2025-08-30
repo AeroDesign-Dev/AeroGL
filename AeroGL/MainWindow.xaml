@@ -1,12 +1,64 @@
 ﻿<Window x:Class="AeroGL.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:AeroGL"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
+        Title="AeroGL — General Ledger" Height="600" Width="900"
+        Background="{StaticResource BgDark}"
+        FontFamily="Consolas" FontSize="16"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        KeyDown="Window_KeyDown" Loaded="Window_Loaded">
+
+    <Grid Margin="16">
+        <!-- top line -->
+        <DockPanel LastChildFill="False" Margin="0,0,0,8">
+            <TextBlock x:Name="TxtDate" DockPanel.Dock="Left" 
+                 Foreground="{StaticResource BrandLight}"/>
+            <TextBlock Text="GL" DockPanel.Dock="Right" 
+                 Foreground="{StaticResource BrandLight}"/>
+        </DockPanel>
+
+        <!-- OUTER FRAME (manual) -->
+        <Border Background="{StaticResource PanelDark}" BorderThickness="1"
+            CornerRadius="10" Padding="12" Margin="0,28,0,0" BorderBrush="#FFFFBB00">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <!-- TITLE BAR (manual) -->
+                <Border Background="#FFFFBC00"
+                BorderBrush="#FFFFBB00" BorderThickness="1"
+                CornerRadius="8" Padding="8" Margin="0,0,0,12">
+                    <TextBlock Text="GL Legacy" Foreground="White"
+                     HorizontalAlignment="Center" FontWeight="Bold" FontSize="20"/>
+                </Border>
+
+                <!-- INNER PANEL (manual) -->
+                <Border Grid.Row="1" Background="#FF5C567C"
+                CornerRadius="8" Padding="10" Width="760" HorizontalAlignment="Center">
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ListBox x:Name="MenuList"
+                             Background="Transparent" BorderThickness="0"
+                             Foreground="{StaticResource TextLight}" SelectionMode="Single"
+                             PreviewMouseLeftButtonUp="MenuList_PreviewMouseLeftButtonUp"
+                             MouseDoubleClick="MenuList_MouseDoubleClick" IsTextSearchEnabled="False">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="6">
+                                        <TextBlock Text="{Binding Icon}" FontFamily="Segoe MDL2 Assets" Width="30"
+                                        FontSize="18" Margin="0,0,30,0"/>
+                                        <TextBlock Text="{Binding Hotkey, StringFormat={}{0} - }" Width="36"/>
+                                        <TextBlock Text="{Binding Title}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Border>
     </Grid>
 </Window>
