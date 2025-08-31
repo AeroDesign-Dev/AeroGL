@@ -1,13 +1,20 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36408.4 d17.14
+VisualStudioVersion = 17.14.36408.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AeroGL", "AeroGL\AeroGL.csproj", "{C35CB8C5-7562-47DD-A153-861437145B59}"
+	ProjectSection(ProjectDependencies) = postProject
+		{24A37716-E639-47E0-A03B-9DB9844CF519} = {24A37716-E639-47E0-A03B-9DB9844CF519}
+		{BE7EB055-400D-4513-90FA-3A5E47FDA636} = {BE7EB055-400D-4513-90FA-3A5E47FDA636}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AeroGL.Core", "AeroGL.Core\AeroGL.Core.csproj", "{24A37716-E639-47E0-A03B-9DB9844CF519}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AeroGL.Data", "AeroGL.Data\AeroGL.Data.csproj", "{BE7EB055-400D-4513-90FA-3A5E47FDA636}"
+	ProjectSection(ProjectDependencies) = postProject
+		{24A37716-E639-47E0-A03B-9DB9844CF519} = {24A37716-E639-47E0-A03B-9DB9844CF519}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
