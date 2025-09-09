@@ -1,0 +1,177 @@
+﻿<Window x:Class="AeroGL.CoaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="COA — Master Akun" Height="420" Width="640"
+        Background="#15152A" FontFamily="Consolas" FontSize="14"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="12">
+
+        <!-- Toolbar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBox x:Name="TxtSearch" Width="240" Margin="0,0,8,0" />
+            <Button Content="Cari" Click="BtnSearch_Click" Margin="0,0,16,0"/>
+            <Button Content="Tambah (F2)" Click="BtnAdd_Click" Margin="0,0,8,0"/>
+            <Button Content="Ubah (Enter)" Click="BtnEdit_Click" Margin="0,0,8,0"/>
+            <Button Content="Hapus (Del)" Click="BtnDelete_Click" Margin="0,0,8,0"/>
+            <Button Content="Refresh (F5)" Click="BtnRefresh_Click"/>
+        </StackPanel>
+
+        <!-- Form detail (DataContext = ICollectionView; Binding ke CurrentItem) -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- Row 0: Code3 + Name -->
+                <RowDefinition Height="Auto"/>
+                <!-- Row 1: Type -->
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <!-- Row 2: Group -->
+                <RowDefinition Height="*"/>
+                <!-- Row 3: Catatan -->
+                <RowDefinition Height="Auto"/>
+                <!-- Row 4: Navigasi -->
+            </Grid.RowDefinitions>
+
+            <!-- Row 0: No. Rekening + Nama Akun dalam satu baris -->
+            <Grid Grid.Row="0" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- label no rek -->
+                    <ColumnDefinition Width="160"/>
+                    <!-- Code3 fixed -->
+                    <ColumnDefinition Width="12"/>
+                    <!-- spacer -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- label nama -->
+                    <ColumnDefinition Width="*"/>
+                    <!-- Name sisa lebar -->
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="No. Rekening" Foreground="#9EEAF9"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox   Grid.Column="1" Text="{Binding Code3}" IsReadOnly="True"/>
+
+                <TextBlock Grid.Column="3" Text="Nama Akun" Foreground="#9EEAF9"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox   Grid.Column="4" Text="{Binding Name}" IsReadOnly="True"/>
+            </Grid>
+
+            <!-- Row 1: Type -> Nama (kode) -->
+            <Grid Grid.Row="1" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Width="50" Text="Type" Foreground="#9EEAF9"
+                           Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <!-- Binding ke properti read-only di model -->
+                <TextBox Grid.Column="1" Text="{Binding TypeText, Mode=OneWay}" IsReadOnly="True"/>
+            </Grid>
+
+            <!-- Row 2: Group -> Nama (kode) -->
+            <Grid Grid.Row="2" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Width="50" Text="Group" Foreground="#9EEAF9"
+                           Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <!-- Binding ke properti read-only di model -->
+                <TextBox Grid.Column="1" Text="{Binding GrpText, Mode=OneWay}" IsReadOnly="True"/>
+            </Grid>
+
+            <!-- Row 3: Catatan bantuan -->
+            <TextBlock Grid.Row="3" Foreground="#9EEAF9" Margin="0,0,0,12">
+                <Run Text="Type : Debit (0), Kredit (1)"/>
+                <LineBreak/>
+                <Run Text="Group: Aktiva (1), Hutang (2), Modal (3), Pendapatan (4), Biaya (5)"/>       
+            </TextBlock>
+
+            <!-- Row 4: Tahun + tabel 12 bulan (RESPONSIF) -->
+            <Grid Grid.Row="4" Margin="0,0,0,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- baris Tahun -->
+                    <RowDefinition Height="*"/>
+                    <!-- DataGrid isi, stretch & scroll bila perlu -->
+                </Grid.RowDefinitions>
+
+                <!-- Pilih tahun -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Tahun" Width="50" Foreground="#9EEAF9" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="CmbYear" Width="100" SelectionChanged="CmbYear_SelectionChanged"/>
+                </StackPanel>
+
+                <!-- Grid 12 bulan -->
+                <DataGrid x:Name="GridMonths" Grid.Row="1"
+            AutoGenerateColumns="False" IsReadOnly="True"
+            Background="Transparent"  Foreground="White"
+            BorderThickness="0" GridLinesVisibility="None"
+            HeadersVisibility="Column"
+            EnableRowVirtualization="True"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
+            ScrollViewer.HorizontalScrollBarVisibility="Auto">
+
+                    <!-- Styling header & row biar kontras -->
+                    <DataGrid.Resources>
+                        <!-- Header -->
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#334"/>
+                            <!-- biru gelap transparan -->
+                            <Setter Property="Foreground" Value="#EAEAEA"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Padding" Value="6,4"/>
+                        </Style>
+
+                        <!-- Row container (hover/selected tetap kontras) -->
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="#1F2238"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Margin" Value="0,1,0,1"/>
+                            <Setter Property="SnapsToDevicePixels" Value="True"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#273052"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#3A4A7A"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+
+                        <!-- Cell (hilang border tipis default) -->
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="6,2"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Resources>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Bln"     Binding="{Binding Month}"  Width="60"/>
+                        <DataGridTextColumn Header="Saldo"   Binding="{Binding Saldo,   StringFormat=N2}" Width="*"/>
+                        <DataGridTextColumn Header="Debet"   Binding="{Binding Debet,   StringFormat=N2}" Width="*"/>
+                        <DataGridTextColumn Header="Kredit"  Binding="{Binding Kredit,  StringFormat=N2}" Width="*"/>
+                        <DataGridTextColumn Header="Balance" Binding="{Binding Balance, StringFormat=N2}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+
+
+            <!-- Row 4: Navigasi -->
+            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="⟵ Prev" Click="BtnPrev_Click" Margin="0,0,8,0" Width="100"/>
+                <TextBlock x:Name="TxtPos" Foreground="White" VerticalAlignment="Center" Margin="4,0"/>
+                <Button Content="Next ⟶" Click="BtnNext_Click" Margin="8,0,0,0" Width="100"/>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>

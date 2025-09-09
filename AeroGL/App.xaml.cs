@@ -8,7 +8,7 @@ namespace AeroGL
     /// </summary>
     public partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
@@ -18,7 +18,7 @@ namespace AeroGL
 
             // Buat schema + trigger jika belum ada
             AeroGL.Data.Schema.Init();
-
+            //await AeroGL.Data.DbfImporter.RunOnce(@"D:\GLData"); // ganti path
 
         }
     }

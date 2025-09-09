@@ -40,6 +40,9 @@
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=9.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.9.0.1\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
+    <Reference Include="NDbfReader, Version=2.4.0.0, Culture=neutral, PublicKeyToken=421d1ecd09787b1d, processorArchitecture=MSIL">
+      <HintPath>..\packages\NDbfReader.2.4.0\lib\net45\NDbfReader.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -60,9 +63,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AliasRepository.cs" />
     <Compile Include="CoaBalanceRepository.cs" />
     <Compile Include="CoaRepository.cs" />
     <Compile Include="Db.cs" />
+    <Compile Include="DBFImport.cs" />
+    <Compile Include="JournalHeaderRepository.cs" />
+    <Compile Include="JournalLineRepository.cs" />
+    <Compile Include="PostingRealtimeService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Schema.cs" />
   </ItemGroup>

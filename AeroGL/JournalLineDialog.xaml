@@ -1,0 +1,59 @@
+﻿<Window x:Class="AeroGL.JournalLineDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Baris Jurnal" Height="320" Width="580"
+        Background="#15152A" FontFamily="Consolas" FontSize="14"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Rekening + Sisi + Jumlah -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="160"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="No. Rekening (2-seg)" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="1" x:Name="TxtCode2"/>
+
+            <TextBlock Grid.Column="3" Text="Sisi" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <ComboBox  Grid.Column="4" x:Name="CmbSide" Width="80">
+                <ComboBoxItem Content="D" IsSelected="True"/>
+                <ComboBoxItem Content="K"/>
+            </ComboBox>
+
+            <TextBlock Grid.Column="6" Text="Jumlah" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="7" x:Name="TxtAmount" TextAlignment="Right"/>
+        </Grid>
+
+        <!-- Keterangan (3 baris -> digabung CRLF) -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,8">
+            <TextBlock Text="Keterangan (max 3 baris)" Foreground="#9EEAF9" Margin="0,0,0,6"/>
+            <TextBox x:Name="TxtNar1" Margin="0,0,0,6"/>
+            <TextBox x:Name="TxtNar2" Margin="0,0,0,6"/>
+            <TextBox x:Name="TxtNar3"/>
+        </StackPanel>
+
+        <!-- Info -->
+        <TextBlock Grid.Row="2" Text="Tip: Code2 'xxx.xxx' akan di-map ke Code3 via Alias (.001 default)."
+               Foreground="#9EEAF9"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Simpan" Click="BtnSave_Click" Margin="0,0,8,0"/>
+            <Button Content="Batal"  Click="BtnCancel_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

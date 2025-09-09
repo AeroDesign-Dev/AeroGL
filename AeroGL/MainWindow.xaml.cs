@@ -91,8 +91,23 @@ namespace AeroGL
             var m = MenuList.SelectedItem as MenuEntry;
             if (m == null) return;
 
-            if (char.ToUpperInvariant(m.Hotkey) == 'X') { Close(); return; }
+            var key = char.ToUpperInvariant(m.Hotkey);
+            if (key == 'X') { Close(); return; }
 
+            if (key == 'A')
+            {
+                var w = new CoaWindow { Owner = this };
+                w.ShowDialog();
+                return;
+            }
+            if (key == 'B')
+            {
+                var w = new JournalWindow { Owner = this };
+                w.ShowDialog();
+                return;
+            }
+
+            // lainnya masih placeholder
             MessageBox.Show(
                 m.Hotkey + " - " + m.Title + "\n\n(placeholder — fungsional menyusul)",
                 "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information
