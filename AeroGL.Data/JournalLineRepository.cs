@@ -60,10 +60,11 @@ WHERE rowid=@Id;";
                 });
         }
 
-        public async Task DeleteById(long id)
+
+        public async Task DeleteByNoTran(string noTran)
         {
             using (var cn = Db.Open())
-                await cn.ExecuteAsync("DELETE FROM JournalLine WHERE rowid=@id", new { id });
+                await cn.ExecuteAsync("DELETE FROM JournalLine WHERE NoTran=@no", new { no = noTran });
         }
     }
 }

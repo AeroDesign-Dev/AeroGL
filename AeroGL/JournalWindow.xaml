@@ -23,38 +23,97 @@
                    FontSize="18" FontWeight="Bold" Margin="0,0,0,8"/>
 
         <!-- Header form -->
+        <!-- Header form -->
         <Grid Grid.Row="1" Margin="0,0,0,10">
+            <!-- Kolom patok (pastikan kolom 1 = posisi TxtNo1) -->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <!-- 0: label kiri -->
+                <ColumnDefinition Width="90"/>
+                <!-- 1: TxtNo1 (PATOK) -->
+                <ColumnDefinition Width="12"/>
+                <!-- 2: '/' -->
+                <ColumnDefinition Width="70"/>
+                <!-- 3: TxtNo2 -->
+                <ColumnDefinition Width="12"/>
+                <!-- 4: '/' -->
+                <ColumnDefinition Width="90"/>
+                <!-- 5: TxtNo3 -->
+                <ColumnDefinition Width="20"/>
+                <!-- 6: spasi -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- 7: label Jenis -->
+                <ColumnDefinition Width="100"/>
+                <!-- 8: CmbType -->
+                <ColumnDefinition Width="20"/>
+                <!-- 9: spasi -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- 10: label Tanggal -->
+                <ColumnDefinition Width="120"/>
+                <!-- 11: DatePicker -->
+                <ColumnDefinition Width="*"/>
+                <!-- 12: filler -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- 13: Confirm -->
+                <ColumnDefinition Width="8"/>
+                <!-- 14: gap -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- 15: Save -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Baris: header, spacer, total debet, total kredit -->
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <!-- 0: NoTran + Jenis + Tanggal + tombol -->
+                <RowDefinition Height="8"/>
+                <!-- 1: spacer, biar gak nempel -->
                 <RowDefinition Height="Auto"/>
+                <!-- 2: Total Debet -->
+                <RowDefinition Height="Auto"/>
+                <!-- 3: Total Kredit -->
             </Grid.RowDefinitions>
 
-            <!-- Row 0: NoTran + Jenis + Tanggal -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
-                <TextBlock Text="No. Transaksi" Foreground="#9EEAF9" Margin="0,0,8,0"/>
-                <TextBox x:Name="TxtNo1" Width="90" IsReadOnly="True"/>
-                <TextBlock Text="/" Foreground="#EAEAEA" Margin="6,0"/>
-                <TextBox x:Name="TxtNo2" Width="70" IsReadOnly="True"/>
-                <TextBlock Text="/" Foreground="#EAEAEA" Margin="6,0"/>
-                <TextBox x:Name="TxtNo3" Width="90" IsReadOnly="True"/>
+            <!-- Row 0: NoTrans + Jenis + Tanggal + Buttons -->
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="No. Transaksi" Foreground="#9EEAF9"
+               Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtNo1" Width="90"  IsReadOnly="True" Margin="0,0,0,0"/>
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="| " Foreground="#EAEAEA" VerticalAlignment="Center"/>
+            <TextBox   Grid.Row="0" Grid.Column="3" x:Name="TxtNo2" Width="70"  IsReadOnly="True"/>
+            <TextBlock Grid.Row="0" Grid.Column="4" Text="| " Foreground="#EAEAEA" VerticalAlignment="Center"/>
+            <TextBox   Grid.Row="0" Grid.Column="5" x:Name="TxtNo3" Width="90"  IsReadOnly="True"/>
 
-                <TextBlock Text="Jenis" Foreground="#9EEAF9" Margin="20,0,8,0"/>
-                <ComboBox x:Name="CmbType" Width="100" IsEnabled="False">
-                    <ComboBoxItem Content="J" IsSelected="True"/>
-                    <ComboBoxItem Content="M"/>
-                </ComboBox>
+            <TextBlock Grid.Row="0" Grid.Column="7" Text="Jenis" Foreground="#9EEAF9"
+               Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <ComboBox  Grid.Row="0" Grid.Column="8" x:Name="CmbType" Width="100" IsEnabled="False">
+                <ComboBoxItem Content="J" IsSelected="True"/>
+                <ComboBoxItem Content="M"/>
+            </ComboBox>
 
-                <TextBlock Text="Tanggal" Foreground="#9EEAF9" Margin="20,0,8,0"/>
-                <DatePicker x:Name="DpTanggal" IsEnabled="False" Width="120"/>
-            </StackPanel>
+            <TextBlock Grid.Row="0" Grid.Column="10" Text="Tanggal" Foreground="#9EEAF9"
+               Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <DatePicker Grid.Row="0" Grid.Column="11" x:Name="DpTanggal" IsEnabled="False" Width="120"/>
 
-            <!-- Row 1: Memo + Totals -->
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,4">
-                <TextBlock Text="Total Debet" Foreground="#9EEAF9" Margin="20,0,8,0"/>
-                <TextBox x:Name="TxtTotD" Width="140" IsReadOnly="True" TextAlignment="Right"/>
+            <!-- Row 2: Total Debet (label di kolom 0, textbox start di kolom 1 = sejajar TxtNo1) -->
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Total Debet" Foreground="#9EEAF9"
+               Margin="0,0,8,4" VerticalAlignment="Center"/>
+            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtTotD" Width="140"
+               IsReadOnly="True" TextAlignment="Right" Margin="0,0,0,4"/>
 
-                <TextBlock Text="Total Kredit" Foreground="#9EEAF9" Margin="20,0,8,0"/>
-                <TextBox x:Name="TxtTotK" Width="140" IsReadOnly="True" TextAlignment="Right"/>
+            <!-- Row 3: Total Kredit (juga start di kolom 1 = sejajar TxtNo1) -->
+            <!-- Row 3: Total Kredit (kiri) -->
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Total Kredit"
+           Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtTotK" Width="140"
+           IsReadOnly="True" TextAlignment="Right"/>
+
+            <!-- Row 3: Buttons (kanan, span sampai ujung, align kanan) -->
+            <StackPanel Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="14"
+            Orientation="Horizontal" HorizontalAlignment="Right"
+            Margin="0,0,0,0" >
+                <Button x:Name="BtnConfirmHeader" Content="Confirm Header"
+            Click="BtnConfirmHeader_Click" Margin="0,0,8,0"/>
+                <Button x:Name="BtnSave" Content="Save Journal"
+            Click="BtnSave_Click" IsEnabled="False"/>
             </StackPanel>
         </Grid>
 
@@ -71,7 +130,7 @@
           VerticalGridLinesBrush="#5CC8FF"
           Height="360"
           ScrollViewer.CanContentScroll="False"
-          SelectionChanged="GridLines_SelectionChanged">
+          SelectionChanged="GridLines_SelectionChanged" VerticalAlignment="Top" Margin="0,20,0,0">
 
             <DataGrid.Resources>
                 <!-- Pastikan bagian dalam ScrollViewer juga transparan -->

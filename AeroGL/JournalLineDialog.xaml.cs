@@ -1,21 +1,33 @@
-﻿using System;
+﻿using AeroGL.Core;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-
-using AeroGL.Core;
-using AeroGL.Data;
+// using AeroGL.Core;   // hanya perlu jika kamu pakai JournalLineRecord (untuk prefill)
+// using AeroGL.Data;   // TIDAK dipakai lagi di dialog ini (DB-nya dikerjakan di caller)
 
 namespace AeroGL
 {
     public partial class JournalLineDialog : Window
     {
+        // ==== KONTRAK HASIL UNTUK CALLER (JournalWindow) ====
+        public sealed class LineResult
+        {
+            public string Code2 { get; set; }     // "xxx.xxx" (2-seg)
+            public string Side { get; set; }      // "D" / "K"
+            public decimal Amount { get; set; }   // > 0
+            public string Narration { get; set; } // gabungan 1-3 baris
+        }
+
+        public LineResult Result { get; private set; }   // <-- inilah yang dibaca JournalWindow
+
+        // ==== OPSIONAL: info untuk prefill (mode edit) ====
         private readonly string _noTran;
         private readonly JournalLineRecord _orig;
-        private readonly IJournalLineRepository _repo = new JournalLineRepository();
 
-        public JournalLineDialog(string noTran, JournalLineRecord existing)
+        // >>> ctor OPSIONAL PARAMS (bisa dipanggil tanpa argumen)
+        public JournalLineDialog(string noTran = null, JournalLineRecord existing = null)
         {
             InitializeComponent();
             _noTran = noTran;
@@ -25,9 +37,12 @@ namespace AeroGL
             {
                 Title = "Ubah Baris Jurnal";
                 TxtCode2.Text = _orig.Code2;
-                TxtAmount.Text = _orig.Amount.ToString("N2");
+                TxtAmount.Text = _orig.Amount.ToString("N2", CultureInfo.CurrentCulture);
+
                 var side = _orig.Side == "K" ? "K" : "D";
-                (CmbSide.Items.Cast<ComboBoxItem>().First(x => (string)x.Content == side)).IsSelected = true;
+                var choose = CmbSide.Items.OfType<ComboBoxItem>()
+                                  .FirstOrDefault(x => string.Equals(x.Content?.ToString(), side, StringComparison.OrdinalIgnoreCase));
+                if (choose != null) choose.IsSelected = true;
 
                 // pecah narasi max 3 baris
                 var parts = (_orig.Narration ?? "").Replace("\r\n", "\n").Split('\n');
@@ -39,39 +54,48 @@ namespace AeroGL
             {
                 Title = "Tambah Baris Jurnal";
             }
+
+            Loaded += (s, e) => TxtCode2.Focus();
         }
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
             var code2 = (TxtCode2.Text ?? "").Trim();
             var amountText = (TxtAmount.Text ?? "").Trim();
-            decimal amount;
-            if (string.IsNullOrWhiteSpace(code2) || !decimal.TryParse(amountText, NumberStyles.Any, CultureInfo.CurrentCulture, out amount))
+
+            if (string.IsNullOrWhiteSpace(code2))
             {
-                MessageBox.Show("Isi rekening 2-seg dan jumlah yang valid.", "Validasi",
+                MessageBox.Show("Kode rekening (2-seg) wajib diisi.", "Validasi",
                     MessageBoxButton.OK, MessageBoxImage.Exclamation);
                 return;
             }
 
-            var side = ((ComboBoxItem)CmbSide.SelectedItem).Content.ToString(); // 'D'/'K'
-            var nar = string.Join("\r\n", new[] { TxtNar1.Text, TxtNar2.Text, TxtNar3.Text }
-                                             .Where(s => !string.IsNullOrWhiteSpace(s?.Trim()))
-                                             .Select(s => s.Trim()));
-
-            if (_orig == null)
+            if (!decimal.TryParse(amountText, NumberStyles.Number, CultureInfo.CurrentCulture, out var amount) || amount <= 0m)
             {
-                // insert
-                var line = new JournalLine { NoTran = _noTran, Code2 = code2, Side = side, Amount = amount, Narration = nar };
-                _repo.Insert(line).Wait();
-            }
-            else
-            {
-                // update
-                var lineNew = new JournalLine { NoTran = _noTran, Code2 = code2, Side = side, Amount = amount, Narration = nar };
-                _repo.UpdateById(_orig.Id, lineNew).Wait();
+                MessageBox.Show("Jumlah harus angka > 0.", "Validasi",
+                    MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                return;
             }
 
-            DialogResult = true;
+            var sideItem = CmbSide.SelectedItem as ComboBoxItem;
+            var side = (sideItem?.Content ?? "D").ToString().ToUpperInvariant();
+            if (side != "D" && side != "K") side = "D";
+
+            var narr = string.Join(Environment.NewLine,
+                        new[] { TxtNar1.Text, TxtNar2.Text, TxtNar3.Text }
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .Select(s => s.Trim()));
+
+            // >>> KEMBALIKAN HASIL KE CALLER (bukan tulis DB di sini)
+            Result = new LineResult
+            {
+                Code2 = code2,
+                Side = side,
+                Amount = amount,
+                Narration = narr
+            };
+
+            DialogResult = true;   // penting: supaya ShowDialog() == true
         }
 
         private void BtnCancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;

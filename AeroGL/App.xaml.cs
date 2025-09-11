@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AeroGL.Data;
+using System;
 using System.Windows;
 
 namespace AeroGL
@@ -12,12 +13,13 @@ namespace AeroGL
         {
             base.OnStartup(e);
 
+            //SchemaMigrator.MigrateV2();
             // Pastikan |DataDirectory| menunjuk ke folder exe
             AppDomain.CurrentDomain.SetData("DataDirectory",
                 AppDomain.CurrentDomain.BaseDirectory);
 
             // Buat schema + trigger jika belum ada
-            AeroGL.Data.Schema.Init();
+            //AeroGL.Data.Schema.Init();
             //await AeroGL.Data.DbfImporter.RunOnce(@"D:\GLData"); // ganti path
 
         }

@@ -73,6 +73,7 @@
     <Compile Include="PostingRealtimeService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Schema.cs" />
+    <Compile Include="SchemaMigrator.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

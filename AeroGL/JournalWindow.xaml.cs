@@ -22,6 +22,11 @@ namespace AeroGL
         private readonly ICoaRepository _coaRepo = new CoaRepository();
         private readonly Dictionary<string, string> _nameCache = new Dictionary<string, string>();
 
+        private bool _headerConfirmed = false;
+        private string _currentNoTran = null; // hasil nomor transaksi sesudah confirm
+        private JournalHeader _tempHeader = null; // draft header yang “dipegang”
+        private bool _isSaving = false;
+
         private async Task<string> ResolveAccountNameByCode2(string code2)
         {
             if (string.IsNullOrWhiteSpace(code2)) return "";
@@ -60,6 +65,8 @@ namespace AeroGL
             _mode = Mode.View;
             SetHeaderEditable(false);
             SetGridReadonly(true);
+            BtnConfirmHeader.IsEnabled = false; // <—
+            BtnSave.IsEnabled = false;          // <—
             UpdateStatus("VIEW");
         }
 
@@ -70,10 +77,12 @@ namespace AeroGL
             CmbType.SelectedIndex = 0;
             DpTanggal.SelectedDate = DateTime.Today;
             TxtTotD.Text = TxtTotK.Text = "0.00";
+
             SetHeaderEditable(true);
+            BtnConfirmHeader.IsEnabled = true;  // <—
+            BtnSave.IsEnabled = false;          // <—
 
             _draft = new ObservableCollection<LineDraft>();
-            // hook item yang ditambahkan
             _draft.CollectionChanged += (s, e) =>
             {
                 if (e.NewItems != null)
@@ -81,9 +90,9 @@ namespace AeroGL
             };
 
             GridLines.ItemsSource = _draft;
-            SetGridReadonly(false);
+            SetGridReadonly(true); // grid tetap readonly; ADD lewat dialog
 
-            UpdateStatus("NEW — Tambah baris sampai BALANCED. Edit=Save, Esc=Cancel.");
+            UpdateStatus("NEW — Isi header lalu Confirm. Setelah itu tambah baris sampai BALANCED.");
             TxtNo1.Focus();
         }
 
@@ -216,17 +225,87 @@ namespace AeroGL
         // ADD: di VIEW → masuk NEW; di NEW → tambah baris draft
         private void BtnAdd_Click(object sender, RoutedEventArgs e)
         {
-            if (_mode == Mode.View)
+            // Kalau masih VIEW (preview data), klik Add = mulai transaksi baru (mode NEW)
+            if (_mode == Mode.View && !_headerConfirmed)
             {
                 EnterNewMode();
                 return;
             }
 
-            // Mode NEW: tambah 1 row kosong
-            _draft.Add(new LineDraft { Side = "D", Amount = 0m, Code2 = "" });
-            GridLines.SelectedIndex = _draft.Count - 1;
-            GridLines.ScrollIntoView(GridLines.SelectedItem);
-            UpdateTotalsFromDraft();
+            // Sudah NEW tapi header belum confirm → ingatkan user
+            if (_mode == Mode.New && !_headerConfirmed)
+            {
+                MessageBox.Show("Confirm Header dulu sebelum menambah baris.", "Info",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // NEW + header sudah confirm → buka dialog tambah baris
+            var dlg = new JournalLineDialog { Owner = this };
+            if (dlg.ShowDialog() == true)
+            {
+                var line = dlg.Result;
+                if (line == null) return;
+
+                var draft = new LineDraft
+                {
+                    Code2 = line.Code2,
+                    Side = line.Side,
+                    Amount = line.Amount,
+                    Narration = line.Narration
+                };
+
+                _ = Task.Run(async () =>
+                {
+                    var name = await ResolveAccountNameByCode2(draft.Code2);
+                    Dispatcher.Invoke(() => draft.AccountName = name);
+                });
+
+                _draft.Add(draft);
+                GridLines.SelectedIndex = _draft.Count - 1;
+                GridLines.ScrollIntoView(GridLines.SelectedItem);
+
+                UpdateTotalsFromDraft();
+                UpdateSaveButtonState();
+            }
+        }
+
+        private bool IsBalancedDraft(out decimal d, out decimal k)
+        {
+            var t = CalcTotalsFromDraft();
+            d = t.D; k = t.K;
+            return d == k && d > 0m;
+        }
+
+        private void UpdateSaveButtonState()
+        {
+            if (!_headerConfirmed)
+            {
+                BtnSave.IsEnabled = false;
+                return;
+            }
+
+            Dispatcher.Invoke(() =>
+            {
+                BtnSave.IsEnabled = IsBalancedDraft(out _, out _);
+            });
+        }
+
+        // ===================== Draft totals (live) =====================
+        private void UpdateTotalsFromDraft()
+        {
+            if (_mode != Mode.New && !_headerConfirmed) return;
+
+            var (d, k) = CalcTotalsFromDraft();
+
+            TxtTotD.Text = d.ToString("N2");
+            TxtTotK.Text = k.ToString("N2");
+
+            var diff = d - k;
+            var note = diff == 0m ? "BALANCED" : ("UNBALANCED: " + diff.ToString("N2"));
+            UpdateStatus((_headerConfirmed ? "NEW(Header OK)" : "NEW") + " — " + note);
+
+            UpdateSaveButtonState();
         }
 
         // EDIT: di VIEW → toggle header edit? (sesuai flow baru kita pakai utk SAVE saat NEW)
@@ -234,37 +313,144 @@ namespace AeroGL
         {
             if (_mode == Mode.New)
             {
-                await SaveNewJournal();
+                // Dulu: await SaveNewJournal();
+                // Ganti: arahkan user pakai tombol Save, atau panggil BtnSave_Click jika mau
+                MessageBox.Show("Gunakan tombol Save untuk menyimpan transaksi baru.", "Info",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            // kalau mau mode edit header existing, bisa diaktifkan di sini
-            MessageBox.Show("Mode EDIT header existing belum diaktifkan. Gunakan NEW untuk menambah transaksi.", "Info",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Mode EDIT header existing belum diaktifkan. Gunakan NEW untuk menambah transaksi.",
+                "Info", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+        private async void BtnSave_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_headerConfirmed || _tempHeader == null)
+            {
+                MessageBox.Show("Header belum di-confirm.", "Info",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var (d, k) = CalcTotalsFromDraft();
+            if (d <= 0m || d != k)
+            {
+                MessageBox.Show("Total Debet dan Kredit HARUS balance.", "Validasi",
+                    MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                return;
+            }
+
+            if (_isSaving) return;
+            _isSaving = true;
+
+            try
+            {
+                using (var cn = Db.Open())
+                using (var tx = cn.BeginTransaction())
+                {
+                    // 1) INSERT header TANPA TOTAL (biarkan default 0; trigger yang isi)
+                    await cn.ExecuteAsync(
+                        "INSERT INTO JournalHeader(NoTran,Tanggal,Type,Memo) VALUES(@NoTran,@Tanggal,@Type,@Memo)",
+                        new
+                        {
+                            _tempHeader.NoTran,
+                            _tempHeader.Tanggal,
+                            _tempHeader.Type,
+                            _tempHeader.Memo
+                        }, tx);
+
+                    // 2) INSERT lines → trigger akan update TotalDebet/TotalKredit otomatis
+                    foreach (var r in _draft)
+                    {
+                        await cn.ExecuteAsync(
+                            "INSERT INTO JournalLine(NoTran,Code2,Side,Amount,Narration) VALUES(@NoTran,@Code2,@Side,@Amount,@Narration)",
+                            new
+                            {
+                                NoTran = _tempHeader.NoTran,
+                                Code2 = r.Code2,
+                                Side = r.Side,
+                                Amount = r.Amount,
+                                Narration = r.Narration ?? ""
+                            }, tx);
+                    }
+
+                    tx.Commit();
+                }
+
+                // 3) Refresh ke VIEW & posisikan ke transaksi yang barusan disimpan
+                var justSavedNo = _tempHeader.NoTran;
+
+                _headerConfirmed = false;
+                _tempHeader = null;
+                _currentNoTran = null;
+                _draft.Clear();
+
+                await LoadHeaders(null);
+                var target = _headers.FirstOrDefault(x => x.NoTran == justSavedNo);
+                if (target != null) _view.MoveCurrentTo(target);
+
+                EnterViewMode();
+                RenderCurrentHeader();
+                MessageBox.Show("Journal tersimpan.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Gagal menyimpan", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isSaving = false;
+            }
+        }
         // DEL: di VIEW → hapus line terpilih (konfirmasi); di NEW → remove draft row
         private async void BtnDel_Click(object sender, RoutedEventArgs e)
         {
+            // NEW mode: tidak boleh delete (belum ada yang disimpan ke DB)
             if (_mode == Mode.New)
             {
-                var row = GridLines.SelectedItem as LineDraft;
-                if (row != null) _draft.Remove(row);
-                UpdateTotalsFromDraft();
+                MessageBox.Show("Transaksi belum disimpan. Batalkan NEW (Esc) kalau mau keluar.",
+                                "Info", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            // VIEW: hapus line pada transaksi aktif
-            var vm = GridLines.SelectedItem as LineVM;
             var h = Cur();
-            if (h == null || vm == null) return;
+            if (h == null) return;
 
-            if (MessageBox.Show("Hapus baris terpilih?", "Konfirmasi",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            // Konfirmasi jelas: hapus seluruh jurnal
+            if (MessageBox.Show($"Hapus SELURUH jurnal '{h.NoTran}' (header + semua baris)?",
+                                "Konfirmasi",
+                                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                return;
 
-            await _lineRepo.DeleteById(vm.Id);
-            await LoadLines(h.NoTran);
-            await RefreshTotals(h.NoTran);
+            try
+            {
+                using (var cn = Db.Open())
+                using (var tx = cn.BeginTransaction())
+                {
+                    // 1) Hapus semua lines untuk NoTran ini
+                    await cn.ExecuteAsync("DELETE FROM JournalLine WHERE NoTran=@no", new { no = h.NoTran }, tx);
+
+                    // 2) Hapus header-nya
+                    await cn.ExecuteAsync("DELETE FROM JournalHeader WHERE NoTran=@no", new { no = h.NoTran }, tx);
+
+                    tx.Commit();
+                }
+
+                // Refresh view setelah delete
+                var deletedNo = h.NoTran;
+                await LoadHeaders(null);
+                if (_headers.Count > 0) _view.MoveCurrentToFirst();
+                EnterViewMode();
+                RenderCurrentHeader();
+
+                MessageBox.Show($"Jurnal '{deletedNo}' dihapus.", "Info",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Gagal menghapus", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async void BtnFind_Click(object sender, RoutedEventArgs e)
@@ -288,118 +474,7 @@ namespace AeroGL
 
         // ===================== SAVE NEW JOURNAL =====================
 
-        private async Task SaveNewJournal()
-        {
-            // validasi header
-            var no = BuildNoTran();
-            if (string.IsNullOrWhiteSpace(no))
-            {
-                MessageBox.Show("Isi No. Transaksi (3 kotak).", "Validasi",
-                    MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                return;
-            }
-
-            // cek duplikat
-            var existing = await _hdrRepo.Get(no);
-            if (existing != null)
-            {
-                MessageBox.Show("No. Transaksi sudah ada.", "Validasi",
-                    MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                return;
-            }
-
-            var jenis = "J";
-            var cmb = CmbType.SelectedItem as System.Windows.Controls.ComboBoxItem;
-            if (cmb != null) jenis = (cmb.Content ?? "J").ToString();
-            var tgl = (DpTanggal.SelectedDate ?? DateTime.Today).ToString("yyyy-MM-dd");
-
-            // validasi lines
-            if (_draft.Count < 2)
-            {
-                MessageBox.Show("Minimal 2 baris jurnal.", "Validasi",
-                    MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                return;
-            }
-            decimal totD = 0m, totK = 0m;
-            foreach (var r in _draft)
-            {
-                if (string.IsNullOrWhiteSpace(r.Side) || (r.Side != "D" && r.Side != "K"))
-                {
-                    MessageBox.Show("Kolom 'Sisi' harus D atau K.", "Validasi",
-                        MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                    return;
-                }
-                if (string.IsNullOrWhiteSpace(r.Code2))
-                {
-                    MessageBox.Show("Kode rekening (2 segmen) wajib diisi.", "Validasi",
-                        MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                    return;
-                }
-                if (r.Amount <= 0m)
-                {
-                    MessageBox.Show("Jumlah harus > 0.", "Validasi",
-                        MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                    return;
-                }
-                if (r.Side == "D") totD += r.Amount; else totK += r.Amount;
-            }
-            if (totD != totK)
-            {
-                MessageBox.Show("Total Debet dan Kredit HARUS balance.", "Validasi",
-                    MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                return;
-            }
-
-            // SIMPAN (header + lines) — idealnya dalam 1 transaksi
-            try
-            {
-                using (var cn = Db.Open()) // asumsi Db.Open() milik layer Data kamu
-                using (var tx = cn.BeginTransaction())
-                {
-                    var h = new JournalHeader
-                    {
-                        NoTran = no,
-                        Tanggal = tgl,
-                        Type = jenis,
-                        TotalDebet = totD,
-                        TotalKredit = totK
-                    };
-
-                    // pakai Dapper langsung biar 1 tx; atau pakai _hdrRepo.Upsert versi yang menerima IDbTransaction
-                    await cn.ExecuteAsync(
-                        "INSERT INTO JournalHeader(NoTran,Tanggal,Type,TotalDebet,TotalKredit,Memo) VALUES(@NoTran,@Tanggal,@Type,@TotalDebet,@TotalKredit,@Memo)",
-                        new { h.NoTran, h.Tanggal, h.Type, h.TotalDebet, h.TotalKredit, Memo = "" }, tx);
-
-                    foreach (var r in _draft)
-                    {
-                        var line = new JournalLine
-                        {
-                            NoTran = no,
-                            Code2 = r.Code2,
-                            Side = r.Side,
-                            Amount = r.Amount,
-                            Narration = r.Narration ?? ""
-                        };
-                        await cn.ExecuteAsync(
-                            "INSERT INTO JournalLine(NoTran,Code2,Side,Amount,Narration) VALUES(@NoTran,@Code2,@Side,@Amount,@Narration)",
-                            line, tx);
-                    }
-
-                    tx.Commit();
-                }
-
-                // selesai → kembali ke VIEW, reload dan posisi ke transaksi baru
-                await LoadHeaders(null);
-                var target = _headers.FirstOrDefault(x => x.NoTran == no);
-                if (target != null) _view.MoveCurrentTo(target);
-                EnterViewMode();
-                RenderCurrentHeader();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Gagal menyimpan", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        
 
         private void HookDraft(LineDraft d)
         {
@@ -432,30 +507,11 @@ namespace AeroGL
             }
         }
 
-        // ===================== Draft totals (live) =====================
-
-        private void UpdateTotalsFromDraft()
-        {
-            if (_mode != Mode.New) return;
-            decimal d = 0m, k = 0m;
-            foreach (var r in _draft)
-                if (r.Side == "D") d += r.Amount; else if (r.Side == "K") k += r.Amount;
-
-            TxtTotD.Text = d.ToString("N2");
-            TxtTotK.Text = k.ToString("N2");
-
-            var diff = d - k;
-            var note = diff == 0m ? "BALANCED" : ("UNBALANCED: " + diff.ToString("N2"));
-            UpdateStatus("NEW — " + note);
-        }
-
         // ===================== Hotkeys =====================
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (_mode == Mode.New && e.Key == Key.Escape) { EnterViewMode(); RenderCurrentHeader(); e.Handled = true; return; }
-            if (_mode == Mode.New && Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.S) { SaveNewJournal().Wait(); e.Handled = true; return; }
-
+            if (_mode == Mode.New && e.Key == Key.Escape) { EnterViewMode(); RenderCurrentHeader(); e.Handled = true; return; }  
             if (e.Key == Key.F2) { BtnAdd_Click(sender, e); e.Handled = true; return; } // Add / Add row
             if (e.Key == Key.Enter && _mode == Mode.View) { BtnEdit_Click(sender, e); e.Handled = true; return; } // (optional)
             if (e.Key == Key.Delete) { BtnDel_Click(sender, e); e.Handled = true; return; }
@@ -468,6 +524,76 @@ namespace AeroGL
         {
 
         }
+
+        private (decimal D, decimal K) CalcTotalsFromDraft()
+        {
+            var d = _draft.Where(x => string.Equals(x.Side, "D", StringComparison.OrdinalIgnoreCase))
+                          .Sum(x => x.Amount);
+            var k = _draft.Where(x => string.Equals(x.Side, "K", StringComparison.OrdinalIgnoreCase))
+                          .Sum(x => x.Amount);
+            return (d, k);
+        }
+
+        private (bool ok, string msg, string no, string jenis, string tglIso) ValidateHeaderInputs()
+        {
+            var no = BuildNoTran();
+            if (string.IsNullOrWhiteSpace(no)) return (false, "Isi No. Transaksi (3 kotak).", null, null, null);
+
+            var cmb = CmbType.SelectedItem as ComboBoxItem;
+            var jenis = (cmb?.Content ?? "J").ToString();
+
+            var tgl = DpTanggal.SelectedDate ?? DateTime.Today;
+            var tglIso = tgl.ToString("yyyy-MM-dd");
+
+            return (true, null, no, jenis, tglIso);
+        }
+        private async void BtnConfirmHeader_Click(object sender, RoutedEventArgs e)
+        {
+            // 1) validasi input header
+            var v = ValidateHeaderInputs();
+            if (!v.ok) { MessageBox.Show(v.msg, "Validasi", MessageBoxButton.OK, MessageBoxImage.Exclamation); return; }
+
+            // 2) cek duplikat di DB (header final)
+            var exists = await _hdrRepo.Get(v.no);
+            if (exists != null)
+            {
+                MessageBox.Show("No. Transaksi sudah ada.", "Validasi", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                return;
+            }
+
+            // 3) simpan header sementara (in-memory dulu; nanti bisa dipindah ke tabel TempHeader)
+            _tempHeader = new JournalHeader
+            {
+                NoTran = v.no,
+                Tanggal = v.tglIso,
+                Type = v.jenis,
+                TotalDebet = 0m,
+                TotalKredit = 0m,
+                Memo = "" // nanti kalau perlu
+            };
+            _currentNoTran = v.no;
+            _headerConfirmed = true;
+
+            // 4) kunci header dan siapkan grid untuk ADD line
+            SetHeaderEditable(false);
+            SetGridReadonly(true); // grid tetap readonly; ADD lewat dialog
+            if (_draft == null) _draft = new ObservableCollection<LineDraft>();
+            _draft.Clear();
+            _draft.CollectionChanged += (s2, e2) =>
+            {
+                if (e2.NewItems != null)
+                    foreach (var it in e2.NewItems) HookDraft(it as LineDraft);
+            };
+            GridLines.ItemsSource = _draft;
+
+            // 5) update UI status
+            TxtTotD.Text = "0.00";
+            TxtTotK.Text = "0.00";
+            UpdateStatus($"NEW — Header confirmed: {_currentNoTran}. Tekan Add untuk menambah baris.");
+            BtnSave.IsEnabled = false;     // belum balanced
+            BtnConfirmHeader.IsEnabled = false;
+        }
+
     }
 
     // =============== DRAFT MODEL UNTUK MODE NEW ===============

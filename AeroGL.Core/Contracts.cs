@@ -83,7 +83,7 @@ namespace AeroGL.Core
         Task<JournalLineRecord> GetById(long id);
         Task<long> Insert(JournalLine line);                 // return rowid
         Task UpdateById(long id, JournalLine lineNew);       // edit
-        Task DeleteById(long id);
+        Task DeleteByNoTran(string noTran);
     }
 
     public interface IAliasRepository
