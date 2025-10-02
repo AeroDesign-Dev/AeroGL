@@ -106,7 +106,36 @@ namespace AeroGL
                 w.ShowDialog();
                 return;
             }
-
+            if (key == 'C')
+            {
+                var w = new ReportJurnalUmumWindow { Owner = this };
+                w.ShowDialog();
+                return;
+            }
+            if (key == 'F')
+            {
+                var w = new ReportNeracaLajurWindow{ Owner = this };
+                w.ShowDialog();
+                return;
+            }
+            if (key == 'G')
+            {
+                var w = new ReportRugiLabaWindow{ Owner = this };
+                w.ShowDialog();
+                return;
+            }
+            if (key == 'H')
+            {
+                var w = new ReportNeracaWindow{ Owner = this };
+                w.ShowDialog();
+                return;
+            }
+            if (key == 'J')
+            {
+                var w = new UtilityWindow{ Owner = this };
+                w.ShowDialog();
+                return;
+            }
             // lainnya masih placeholder
             MessageBox.Show(
                 m.Hotkey + " - " + m.Title + "\n\n(placeholder — fungsional menyusul)",

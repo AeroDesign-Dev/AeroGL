@@ -8,7 +8,31 @@
 
         <!-- Toolbar -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBox x:Name="TxtSearch" Width="240" Margin="0,0,8,0" />
+            <ComboBox x:Name="CmbSearch"
+                      Width="320" Margin="0,0,8,0"
+                      IsEditable="True"
+                      StaysOpenOnEdit="True"
+                      IsTextSearchEnabled="False"
+                      TextSearch.TextPath="Code3"
+                      Loaded="CmbSearch_Loaded"
+                      SelectionChanged="CmbSearch_SelectionChanged">
+                <ComboBox.Resources>
+                    <!-- Hilangkan tombol panah -->
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </Style>
+                </ComboBox.Resources>
+
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Code3}" Width="110"/>
+                            <TextBlock Text=" — "/>
+                            <TextBlock Text="{Binding Name}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
             <Button Content="Cari" Click="BtnSearch_Click" Margin="0,0,16,0"/>
             <Button Content="Tambah (F2)" Click="BtnAdd_Click" Margin="0,0,8,0"/>
             <Button Content="Ubah (Enter)" Click="BtnEdit_Click" Margin="0,0,8,0"/>

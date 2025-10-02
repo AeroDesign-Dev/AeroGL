@@ -1,0 +1,269 @@
+﻿<Window x:Class="AeroGL.ReportNeracaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AeroGL"
+        Title="Neraca (Preview)" Height="740" Width="1080"
+        Background="#15152A" FontFamily="Consolas" FontSize="14"
+        WindowStartupLocation="CenterOwner" SnapsToDevicePixels="True" UseLayoutRounding="True">
+
+    <Window.Resources>
+        <local:RupiahConverter x:Key="Rp"/>
+
+        <Style x:Key="Hdr" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#A3D8FF"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,10,0,4"/>
+        </Style>
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#9EEAF9"/>
+            <Setter Property="Margin" Value="0,2,0,2"/>
+        </Style>
+        <Style x:Key="Val" TargetType="TextBlock" BasedOn="{StaticResource Lbl}">
+            <Setter Property="Foreground" Value="#BFFFD0"/>
+            <Setter Property="TextAlignment" Value="Right"/>
+        </Style>
+        <Style x:Key="StrongVal" TargetType="TextBlock" BasedOn="{StaticResource Val}">
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style x:Key="Line" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#4444FF"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="Margin" Value="0,6,0,6"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="14">
+
+        <!-- ===== Toolbar (atas) ===== -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Tahun" Foreground="#9EEAF9" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox x:Name="TxtYear" Width="72" Margin="0,0,12,0"/>
+                <TextBlock Text="Bulan" Foreground="#9EEAF9" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="CboMonth" Width="160" SelectedIndex="0">
+                    <ComboBoxItem Content="1 - Januari"/>
+                    <ComboBoxItem Content="2 - Februari"/>
+                    <ComboBoxItem Content="3 - Maret"/>
+                    <ComboBoxItem Content="4 - April"/>
+                    <ComboBoxItem Content="5 - Mei"/>
+                    <ComboBoxItem Content="6 - Juni"/>
+                    <ComboBoxItem Content="7 - Juli"/>
+                    <ComboBoxItem Content="8 - Agustus"/>
+                    <ComboBoxItem Content="9 - September"/>
+                    <ComboBoxItem Content="10 - Oktober"/>
+                    <ComboBoxItem Content="11 - November"/>
+                    <ComboBoxItem Content="12 - Desember"/>
+                </ComboBox>
+
+                <Button Content="Tampilkan (Enter)" Margin="12,0,8,0" Click="BtnShow_Click"/>
+                <Button Content="Print (P)" Click="BtnPrint_Click"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Tutup (Esc)" Click="BtnClose_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ===== Info bar (baru, 1 baris di bawah toolbar) ===== -->
+        <Border DockPanel.Dock="Top" Padding="8,4" Background="#0E0F1D" CornerRadius="6" Margin="0,0,0,10">
+            <TextBlock x:Name="TxtInfo"
+                       Foreground="#9EEAF9"
+                       TextTrimming="CharacterEllipsis"/>
+        </Border>
+
+        <!-- ===== Paper ===== -->
+        <ScrollViewer>
+            <Border Background="#0E0F1D" Padding="24" CornerRadius="8">
+                <Grid x:Name="Paper">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!-- Title -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Period -->
+                        <RowDefinition Height="12"/>
+                        <!-- Spacer -->
+                        <RowDefinition Height="*"/>
+                        <!-- Body two columns -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Totals bottom -->
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="{Binding Title}" 
+                               Foreground="#EAEAEA" FontWeight="Bold" FontSize="16"
+                               TextAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock Grid.Row="1" Text="{Binding Period}"
+                               Foreground="#B7C9FF" FontSize="13"
+                               TextAlignment="Center" Margin="0,0,0,6"/>
+
+                    <!-- Two-column content -->
+                    <Grid Grid.Row="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="36"/>
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- AKTIVA (left) -->
+                        <Grid Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="AKTIVA LANCAR" Style="{StaticResource Hdr}"/>
+                            <TextBlock Grid.Row="1" Text="KAS" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="1" HorizontalAlignment="Stretch" Text="{Binding Kas, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="2" Text="BANK" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="2" HorizontalAlignment="Stretch" Text="{Binding Bank, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="3" Text="PIUTANG DAGANG" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="3" HorizontalAlignment="Stretch" Text="{Binding PiutangDagang, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="4" Text="PERSEDIAAN BARANG" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="4" HorizontalAlignment="Stretch" Text="{Binding Persediaan, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="5" Text="PIUTANG KARYAWAN" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="5" HorizontalAlignment="Stretch" Text="{Binding PiutangKaryawan, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="6" Text="PAJAK DIBAYAR DIMUKA" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="6" HorizontalAlignment="Stretch" Text="{Binding PajakDibayarDimuka, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+
+                            <Border Grid.Row="7" Style="{StaticResource Line}"/>
+                            <TextBlock Grid.Row="8" Text="JUMLAH AKTIVA LANCAR" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="8" HorizontalAlignment="Stretch" Text="{Binding JumlahAktivaLancar, Converter={StaticResource Rp}}" Style="{StaticResource StrongVal}"/>
+
+                            <TextBlock Grid.Row="9" Text="AKTIVA TETAP" Style="{StaticResource Hdr}" Margin="0,12,0,4"/>
+                            <!-- Row index continues naturally below using another inner grid -->
+                        </Grid>
+
+                        <!-- Fixed assets block (continue under left grid) -->
+                        <Grid Grid.Column="0" Margin="0,210,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="AKTIVA TETAP" Style="{StaticResource Hdr}"/>
+                            <TextBlock Grid.Row="1" Text="AKTIVA TETAP" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="1" HorizontalAlignment="Stretch" Text="{Binding AktivaTetap, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="2" Text="AKUMULASI PENYUSUTAN" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="2" HorizontalAlignment="Stretch" Text="{Binding AkumulasiPenyusutanNeg, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <Border Grid.Row="3" Style="{StaticResource Line}"/>
+                            <TextBlock Grid.Row="4" Text="JUMLAH AKTIVA TETAP" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="4" HorizontalAlignment="Stretch" Text="{Binding JumlahAktivaTetap, Converter={StaticResource Rp}}" Style="{StaticResource StrongVal}"/>
+                        </Grid>
+
+                        <!-- PASSIVA (right) -->
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="PASSIVA LANCAR" Style="{StaticResource Hdr}"/>
+                            <TextBlock Grid.Row="1" Text="HUTANG DAGANG" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Stretch" Text="{Binding HutangDagang, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="2" Text="HUTANG BANK" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="2" HorizontalAlignment="Stretch" Text="{Binding HutangBank, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="3" Text="HUTANG LAIN - LAIN" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="3" HorizontalAlignment="Stretch" Text="{Binding HutangLain, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="4" Text="BIAYA YMH DIBAYAR" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="4" HorizontalAlignment="Stretch" Text="{Binding BYMHDibayarNeg, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="5" Text="PAJAK YMH DIBAYAR" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="5" HorizontalAlignment="Stretch" Text="{Binding PYMHDibayar, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <Border Grid.Row="6" Style="{StaticResource Line}"/>
+                            <TextBlock Grid.Row="7" Text="JUMLAH PASSIVA LANCAR" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="7" HorizontalAlignment="Stretch" Text="{Binding JumlahPassivaLancar, Converter={StaticResource Rp}}" Style="{StaticResource StrongVal}"/>
+
+                            <TextBlock Grid.Row="8" Text="MODAL" Style="{StaticResource Hdr}" Margin="0,12,0,4"/>
+                            <TextBlock Grid.Row="9" Text="" />
+                        </Grid>
+
+                        <!-- Modal block (right, below) -->
+                        <Grid Grid.Column="2" Margin="0,240,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="MODAL" Style="{StaticResource Hdr}"/>
+                            <TextBlock Grid.Row="1" Text="MODAL YANG DISETOR" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="1" HorizontalAlignment="Stretch" Text="{Binding ModalDisetor, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="2" Text="LABA (RUGI) DITAHAN" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="2" HorizontalAlignment="Stretch" Text="{Binding LabaDitahan, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <TextBlock Grid.Row="3" Text="LABA (RUGI) BERJALAN" Style="{StaticResource Lbl}"/>
+                            <TextBlock Grid.Row="3" HorizontalAlignment="Stretch" Text="{Binding LabaBerjalan, Converter={StaticResource Rp}}" Style="{StaticResource Val}"/>
+                            <Border Grid.Row="4" Style="{StaticResource Line}"/>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Totals bottom row -->
+                    <Grid Grid.Row="4" Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="36"/>
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- LEFT: TOTAL AKTIVA -->
+                        <Grid Grid.Column="0" VerticalAlignment="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="260" />
+                                <!-- lebar area angka -->
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="TOTAL AKTIVA" Style="{StaticResource Lbl}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding TotalAktiva, Converter={StaticResource Rp}}"
+               Style="{StaticResource StrongVal}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- RIGHT TOP: JUMLAH MODAL -->
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="10"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="260" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="JUMLAH MODAL" Style="{StaticResource Lbl}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding JumlahModal, Converter={StaticResource Rp}}"
+               Style="{StaticResource StrongVal}" VerticalAlignment="Center"/>
+
+                            <!-- RIGHT BOTTOM: TOTAL PASSIVA -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="TOTAL PASSIVA" Style="{StaticResource Lbl}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding TotalPassiva, Converter={StaticResource Rp}}"
+               Style="{StaticResource StrongVal}" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

@@ -20,11 +20,82 @@ namespace AeroGL
         private ObservableCollection<Coa> _items = new ObservableCollection<Coa>();
         private ICollectionView _view;
 
+        private ObservableCollection<Coa> _suggest = new ObservableCollection<Coa>();
+        private System.Windows.Threading.DispatcherTimer _suggestTimer;
+        private string _pendingQuery = "";
+
+
         public CoaWindow()
         {
             InitializeComponent();
+            _suggestTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(200) // debounce 200ms
+            };
+            _suggestTimer.Tick += async (_, __) =>
+            {
+                _suggestTimer.Stop();
+                await LoadSuggestions(_pendingQuery);
+            };
             Loaded += async (_, __) => await RefreshData();
             KeyDown += Grid_KeyDown; // hotkeys global
+        }
+        private async Task LoadSuggestions(string q)
+        {
+            _suggest.Clear();
+
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                CmbSearch.IsDropDownOpen = false;
+                return;
+            }
+
+            // Heuristik: jika user ketik pola kode (misal "100." atau "100.001")
+            // prioritaskan prefix code3; kalau tidak, pakai Search general
+            // NOTE: pakai repo.Search(q) yang kamu punya — biasanya sudah
+            // match code3 & name. Kalau mau strict prefix, tambahkan SearchPrefix di repo nanti.
+
+            var rows = await _coaRepo.Search(q);
+
+            // Optional: sort yang code-prefix dulu biar relevan (simple scoring)
+            var list = rows
+                .OrderByDescending(x => (x.Code3?.StartsWith(q, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ThenBy(x => x.Code3)
+                .Take(30) // batasi 30 hasil
+                .ToList();
+
+            foreach (var it in list) _suggest.Add(it);
+
+            CmbSearch.IsDropDownOpen = _suggest.Count > 0;
+        }
+
+        // dapatkan TextBox internal dari ComboBox supaya bisa listen teks
+        private void CmbSearch_Loaded(object sender, RoutedEventArgs e)
+        {
+            var tb = (CmbSearch.Template.FindName("PART_EditableTextBox", CmbSearch) as System.Windows.Controls.TextBox);
+            if (tb != null)
+                tb.TextChanged += CmbSearch_TextChanged;
+
+            CmbSearch.ItemsSource = _suggest;
+        }
+
+        // ketik = debounce → query
+        private void CmbSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            _pendingQuery = CmbSearch.Text?.Trim() ?? "";
+            _suggestTimer.Stop();
+            _suggestTimer.Start();
+        }
+
+        // klik salah satu suggestion
+        private void CmbSearch_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            var chosen = CmbSearch.SelectedItem as Coa;
+            if (chosen != null)
+            {
+                MoveTo(chosen.Code3);
+                CmbSearch.IsDropDownOpen = false;
+            }
         }
 
         // ====== Data / Binding ======
@@ -129,7 +200,7 @@ namespace AeroGL
         // ====== Search/Refresh ======
         private async void BtnSearch_Click(object sender, RoutedEventArgs e)
         {
-            var q = TxtSearch.Text?.Trim();
+            var q = CmbSearch.Text?.Trim();
             var rows = string.IsNullOrEmpty(q) ? await _coaRepo.All() : await _coaRepo.Search(q);
             _items = new ObservableCollection<Coa>(rows);
             _view = CollectionViewSource.GetDefaultView(_items);

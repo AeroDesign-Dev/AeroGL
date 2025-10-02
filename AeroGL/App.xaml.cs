@@ -12,7 +12,6 @@ namespace AeroGL
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
             //SchemaMigrator.MigrateV2();
             // Pastikan |DataDirectory| menunjuk ke folder exe
             AppDomain.CurrentDomain.SetData("DataDirectory",

@@ -1,0 +1,181 @@
+﻿<Window x:Class="AeroGL.ReportRugiLabaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AeroGL"
+        Title="Rugi / Laba (Preview)" Height="720" Width="980"
+        Background="#15152A" FontFamily="Consolas" FontSize="14"
+        WindowStartupLocation="CenterOwner" SnapsToDevicePixels="True" UseLayoutRounding="True">
+
+    <Window.Resources>
+        <local:RupiahConverter x:Key="Rp"/>
+        <Style x:Key="LabelTxt" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#86F7A1"/>
+            <Setter Property="Margin" Value="0,2,0,2"/>
+        </Style>
+        <Style x:Key="ValueTxt" TargetType="TextBlock" BasedOn="{StaticResource LabelTxt}">
+            <Setter Property="Foreground" Value="#BFFFD0"/>
+            <Setter Property="TextAlignment" Value="Right"/>
+        </Style>
+        <Style x:Key="Line" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#FF44DD"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="Margin" Value="0,6,0,6"/>
+        </Style>
+        <Style x:Key="Section" TargetType="TextBlock" BasedOn="{StaticResource LabelTxt}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#A3D8FF"/>
+            <Setter Property="Margin" Value="0,14,0,4"/>
+        </Style>
+        <Style x:Key="Strong" TargetType="TextBlock" BasedOn="{StaticResource ValueTxt}">
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="14">
+        <!-- toolbar -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Tahun" Foreground="#9EEAF9" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox x:Name="TxtYear" Width="72" Margin="0,0,12,0"/>
+                <TextBlock Text="Mode" Foreground="#9EEAF9" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="CboMode" Width="160" SelectedIndex="0" Margin="0,0,12,0">
+                    <ComboBoxItem Content="Bulan ini saja"/>
+                    <ComboBoxItem Content="YTD s.d. Bulan"/>
+                </ComboBox>
+                <TextBlock Text="Bulan" Foreground="#9EEAF9" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="CboMonth" Width="160" SelectedIndex="0">
+                    <ComboBoxItem Content="1 - Januari"/>
+                    <ComboBoxItem Content="2 - Februari"/>
+                    <ComboBoxItem Content="3 - Maret"/>
+                    <ComboBoxItem Content="4 - April"/>
+                    <ComboBoxItem Content="5 - Mei"/>
+                    <ComboBoxItem Content="6 - Juni"/>
+                    <ComboBoxItem Content="7 - Juli"/>
+                    <ComboBoxItem Content="8 - Agustus"/>
+                    <ComboBoxItem Content="9 - September"/>
+                    <ComboBoxItem Content="10 - Oktober"/>
+                    <ComboBoxItem Content="11 - November"/>
+                    <ComboBoxItem Content="12 - Desember"/>
+                </ComboBox>
+
+                <Button Content="Tampilkan (Enter)" Margin="12,0,8,0" Click="BtnShow_Click"/>
+                <Button Content="Print (P)" Click="BtnPrint_Click"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock x:Name="TxtInfo" Foreground="#9EEAF9" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Button Content="Tutup (Esc)" Click="BtnClose_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- kertas -->
+        <ScrollViewer>
+            <Border Background="#0E0F1D" Padding="24" CornerRadius="8">
+                <Grid x:Name="Paper">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="280" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid.RowDefinitions>
+                        <!-- tambah baris sesuai blok -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Title -->
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <!-- Pendapatan -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- line -->
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <!-- HPP + Laba Kotor -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- line -->
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <!-- Biaya -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- line -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Laba operasi -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Section LL -->
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <!-- LL -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- line -->
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <!-- Laba bersih -->
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding Title}" 
+                               Foreground="#EAEAEA" FontWeight="Bold" FontSize="16"
+                               TextAlignment="Center" Margin="0,0,0,10"/>
+
+                    <!-- PENDAPATAN -->
+                    <TextBlock Grid.Row="1" Text="PENDAPATAN" Style="{StaticResource Section}"/>
+                    <TextBlock Grid.Row="2" Text="PENJUALAN" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Penjualan, Converter={StaticResource Rp}}" Style="{StaticResource ValueTxt}"/>
+
+                    <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource Line}"/>
+
+                    <TextBlock Grid.Row="4" Text="PENJUALAN BERSIH" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding PenjualanBersih, Converter={StaticResource Rp}}" Style="{StaticResource Strong}"/>
+
+                    <TextBlock Grid.Row="5" Text="HARGA POKOK PENJUALAN" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding HppNeg, Converter={StaticResource Rp}}" Style="{StaticResource ValueTxt}"/>
+
+                    <Border Grid.Row="6" Grid.ColumnSpan="2" Style="{StaticResource Line}"/>
+
+                    <TextBlock Grid.Row="7" Text="LABA KOTOR" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding LabaKotor, Converter={StaticResource Rp}}" Style="{StaticResource Strong}"/>
+
+                    <!-- BIAYA-BIAYA -->
+                    <TextBlock Grid.Row="8" Text="BIAYA - BIAYA" Style="{StaticResource Section}"/>
+                    <TextBlock Grid.Row="9" Text="BIAYA PENJUALAN" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding BiayaPenjualanNeg, Converter={StaticResource Rp}}" Style="{StaticResource ValueTxt}"/>
+                    <TextBlock Grid.Row="10" Text="BIAYA ADMINISTRASI &amp; UMUM" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding BiayaAdmUmumNeg, Converter={StaticResource Rp}}" Style="{StaticResource ValueTxt}"/>
+
+                    <Border Grid.Row="11" Grid.ColumnSpan="2" Style="{StaticResource Line}"/>
+
+                    <TextBlock Grid.Row="12" Text="TOTAL BIAYA" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="12" Grid.Column="1" Text="{Binding TotalBiayaNeg, Converter={StaticResource Rp}}" Style="{StaticResource Strong}"/>
+
+                    <TextBlock Grid.Row="13" Text="LABA SETELAH OPERASI" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="13" Grid.Column="1" Text="{Binding LabaOperasi, Converter={StaticResource Rp}}" Style="{StaticResource Strong}"/>
+
+                    <!-- Lain-lain -->
+                    <TextBlock Grid.Row="14" Text="PENDAPATAN-BIAYA LAIN-LAIN" Style="{StaticResource Section}"/>
+                    <TextBlock Grid.Row="15" Text="PENDAPATAN LAIN - LAIN" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="15" Grid.Column="1" Text="{Binding PendapatanLain, Converter={StaticResource Rp}}" Style="{StaticResource ValueTxt}"/>
+                    <TextBlock Grid.Row="16" Text="BIAYA LAIN - LAIN" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="16" Grid.Column="1" Text="{Binding BiayaLainNeg, Converter={StaticResource Rp}}" Style="{StaticResource ValueTxt}"/>
+                    <TextBlock Grid.Row="17" Text="JUMLAH PENDAPATAN/(BIAYA)" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="17" Grid.Column="1" Text="{Binding JumlahLL, Converter={StaticResource Rp}}" Style="{StaticResource Strong}"/>
+
+                    <Border Grid.Row="18" Grid.ColumnSpan="2" Style="{StaticResource Line}"/>
+
+                    <TextBlock Grid.Row="19" Text="LABA BERSIH" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="19" Grid.Column="1" Text="{Binding LabaBersih, Converter={StaticResource Rp}}" Style="{StaticResource Strong}"/>
+                    <TextBlock Grid.Row="20" Text="KOREKSI POSITIF/( NEGATIF )" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="20" Grid.Column="1" Text="{Binding Koreksi, Converter={StaticResource Rp}}" Style="{StaticResource ValueTxt}"/>
+                    <TextBlock Grid.Row="21" Text="LABA BERSIH SETELAH KOREKSI" Style="{StaticResource LabelTxt}"/>
+                    <TextBlock Grid.Row="21" Grid.Column="1" Text="{Binding LabaSetelahKoreksi, Converter={StaticResource Rp}}" Style="{StaticResource Strong}"/>
+                </Grid>
+            </Border>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

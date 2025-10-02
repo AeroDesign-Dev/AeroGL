@@ -96,15 +96,15 @@
             <!-- Row 2: Total Debet (label di kolom 0, textbox start di kolom 1 = sejajar TxtNo1) -->
             <TextBlock Grid.Row="2" Grid.Column="0" Text="Total Debet" Foreground="#9EEAF9"
                Margin="0,0,8,4" VerticalAlignment="Center"/>
-            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtTotD" Width="140"
-               IsReadOnly="True" TextAlignment="Right" Margin="0,0,0,4"/>
+            <TextBox   Grid.Row="1" x:Name="TxtTotD" Width="150"
+               IsReadOnly="True" TextAlignment="Right" Margin="108,8,0,4" Grid.ColumnSpan="16" HorizontalAlignment="Left" Grid.RowSpan="2"/>
 
             <!-- Row 3: Total Kredit (juga start di kolom 1 = sejajar TxtNo1) -->
             <!-- Row 3: Total Kredit (kiri) -->
             <TextBlock Grid.Row="3" Grid.Column="0" Text="Total Kredit"
            Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
-            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtTotK" Width="140"
-           IsReadOnly="True" TextAlignment="Right"/>
+            <TextBox   Grid.Row="3" x:Name="TxtTotK" Width="150"
+           IsReadOnly="True" TextAlignment="Right" Grid.ColumnSpan="4" HorizontalAlignment="Left" Margin="108,0,0,0"/>
 
             <!-- Row 3: Buttons (kanan, span sampai ujung, align kanan) -->
             <StackPanel Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="14"

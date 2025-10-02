@@ -18,37 +18,76 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="160"/>
                 <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+                <!-- Label nama akun -->
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="No. Rekening (2-seg)" Foreground="#9EEAF9"
+             Margin="0,0,8,0" VerticalAlignment="Center"/>
+
+            <!-- TextBox + Popup suggestion -->
+            <Grid Grid.Column="1">
+                <TextBox x:Name="TxtCode2"/>
+                <Popup x:Name="PopSuggest"
+           Placement="Bottom"
+           StaysOpen="False"
+           AllowsTransparency="True"
+           Width="{Binding ActualWidth, ElementName=TxtCode2}">
+                    <Border Background="#222" BorderBrush="#444" BorderThickness="1">
+                        <ListBox x:Name="LstSuggest"
+                 MaxHeight="180"
+                 MouseDoubleClick="LstSuggest_MouseDoubleClick"
+                 SelectionChanged="LstSuggest_SelectionChanged">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Code3}" Width="110"/>
+                                        <TextBlock Text=" — "/>
+                                        <TextBlock Text="{Binding Name}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </Popup>
+            </Grid>
+
+            <!-- Nama akun (pasif) -->
+            <TextBlock Grid.Column="3" x:Name="LblAccName"
+             Foreground="#9EEAF9" VerticalAlignment="Center"/>
+            
+        </Grid>
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="80"/>
-                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="24"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="160"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Column="0" Text="No. Rekening (2-seg)" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
-            <TextBox   Grid.Column="1" x:Name="TxtCode2"/>
-
-            <TextBlock Grid.Column="3" Text="Sisi" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
-            <ComboBox  Grid.Column="4" x:Name="CmbSide" Width="80">
+            <TextBlock Grid.Column="0" Text="Sisi" Foreground="#9EEAF9"
+             Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <ComboBox  Grid.Column="1" x:Name="CmbSide" Width="80">
                 <ComboBoxItem Content="D" IsSelected="True"/>
                 <ComboBoxItem Content="K"/>
             </ComboBox>
 
-            <TextBlock Grid.Column="6" Text="Jumlah" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
-            <TextBox   Grid.Column="7" x:Name="TxtAmount" TextAlignment="Right"/>
+            <TextBlock Grid.Column="3" Text="Jumlah" Foreground="#9EEAF9"
+             Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="4" x:Name="TxtAmount" TextAlignment="Right"/>
         </Grid>
 
         <!-- Keterangan (3 baris -> digabung CRLF) -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,8">
-            <TextBlock Text="Keterangan (max 3 baris)" Foreground="#9EEAF9" Margin="0,0,0,6"/>
-            <TextBox x:Name="TxtNar1" Margin="0,0,0,6"/>
-            <TextBox x:Name="TxtNar2" Margin="0,0,0,6"/>
-            <TextBox x:Name="TxtNar3"/>
+        <StackPanel Grid.Row="2" Margin="0,0,0,8">
+            <TextBlock Text="Keterangan" Foreground="#9EEAF9" Margin="0,0,0,6"/>
+            <TextBox x:Name="TxtNarr"
+           AcceptsReturn="True"
+           VerticalScrollBarVisibility="Auto"
+           Height="110"/>
         </StackPanel>
 
-        <!-- Info -->
-        <TextBlock Grid.Row="2" Text="Tip: Code2 'xxx.xxx' akan di-map ke Code3 via Alias (.001 default)."
-               Foreground="#9EEAF9"/>
+        
 
         <!-- Buttons -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">

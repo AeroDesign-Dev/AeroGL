@@ -1,0 +1,150 @@
+﻿<Window x:Class="AeroGL.ReportNeracaLajurWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Neraca Lajur (Preview)" Height="640" Width="1100"
+        Background="#15152A" FontFamily="Consolas" FontSize="14"
+        WindowStartupLocation="CenterOwner"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        xmlns:sysgl="clr-namespace:System.Globalization;assembly=mscorlib"
+        Language="id-ID">
+    <DockPanel Margin="12">
+
+        <!-- Toolbar -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Mode: Bulan / YTD -->
+            <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Text="Tahun" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtYear" Width="72" Margin="0,0,12,0"/>
+                <TextBlock Text="Mode" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CboMode" Width="160" SelectedIndex="0" Margin="0,0,12,0">
+                    <ComboBoxItem Content="Bulan ini saja"/>
+                    <ComboBoxItem Content="YTD s.d. Bulan"/>
+                </ComboBox>
+                <TextBlock Text="Bulan" Foreground="#9EEAF9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CboMonth" Width="140" SelectedIndex="0">
+                    <!-- 1..12 -->
+                    <ComboBoxItem Content="1 - Januari"/>
+                    <ComboBoxItem Content="2 - Februari"/>
+                    <ComboBoxItem Content="3 - Maret"/>
+                    <ComboBoxItem Content="4 - April"/>
+                    <ComboBoxItem Content="5 - Mei"/>
+                    <ComboBoxItem Content="6 - Juni"/>
+                    <ComboBoxItem Content="7 - Juli"/>
+                    <ComboBoxItem Content="8 - Agustus"/>
+                    <ComboBoxItem Content="9 - September"/>
+                    <ComboBoxItem Content="10 - Oktober"/>
+                    <ComboBoxItem Content="11 - November"/>
+                    <ComboBoxItem Content="12 - Desember"/>
+                </ComboBox>
+            </StackPanel>
+
+            <!-- Tombol -->
+            <StackPanel Orientation="Horizontal" Grid.Column="1" Margin="12,0,0,0">
+                <Button x:Name="BtnShow"  Content="Tampilkan (Enter)" Click="BtnShow_Click" Margin="0,0,8,0"/>
+                <Button x:Name="BtnPrint" Content="Print (P)" Click="BtnPrint_Click"/>
+            </StackPanel>
+
+            <TextBlock x:Name="TxtInfo" Foreground="#9EEAF9" Grid.Column="4" VerticalAlignment="Center" Margin="16,0"/>
+            <Button Content="Tutup (Esc)" Grid.Column="5" Click="BtnClose_Click"/>
+        </Grid>
+
+        <!-- Grid -->
+        <DataGrid x:Name="GridRows"
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          Background="Transparent"
+          Foreground="White"
+          BorderThickness="0"
+          GridLinesVisibility="None"
+          HeadersVisibility="Column"
+          EnableRowVirtualization="True"
+          ScrollViewer.VerticalScrollBarVisibility="Auto"
+          ScrollViewer.HorizontalScrollBarVisibility="Auto">
+
+            <DataGrid.Resources>
+                <!-- Header -->
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#334"/>
+                    <Setter Property="Foreground" Value="#EAEAEA"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="Padding" Value="6,4"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                </Style>
+
+                <!-- Row gelap + hover/selected -->
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="#1F2238"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="Margin" Value="0,1,0,1"/>
+                    <Setter Property="SnapsToDevicePixels" Value="True"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#273052"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#3A4A7A"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+
+                <!-- Cell: paksa teks putih -->
+                <Style TargetType="DataGridCell">
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Padding" Value="6,2"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                </Style>
+
+                <!-- Right align helper untuk angka -->
+                <Style x:Key="RightCell" TargetType="{x:Type TextBlock}">
+                    <Setter Property="TextAlignment" Value="Right"/>
+                    <Setter Property="Padding" Value="6,2"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+            </DataGrid.Resources>
+
+            <!-- kolom-kolommu tetap -->
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="NOMOR" Binding="{Binding Code3}" Width="130"/>
+                <DataGridTextColumn Header="NAMA REKENING" Binding="{Binding Name}" Width="240"/>
+                <DataGridTextColumn Header="BALANCE • DEBET"
+    Binding="{Binding BalD, StringFormat=Rp {0:N2}, TargetNullValue=''}"
+    Width="130" ElementStyle="{StaticResource RightCell}"/>
+
+                <DataGridTextColumn Header="BALANCE • KREDIT"
+    Binding="{Binding BalK, StringFormat=Rp {0:N2}, TargetNullValue=''}"
+    Width="130" ElementStyle="{StaticResource RightCell}"/>
+
+                <DataGridTextColumn Header="R/L • DEBET"
+    Binding="{Binding LRD, StringFormat=Rp {0:N2}, TargetNullValue=''}"
+    Width="130" ElementStyle="{StaticResource RightCell}"/>
+
+                <DataGridTextColumn Header="R/L • KREDIT"
+    Binding="{Binding LRK, StringFormat=Rp {0:N2}, TargetNullValue=''}"
+    Width="130" ElementStyle="{StaticResource RightCell}"/>
+
+                <DataGridTextColumn Header="NERACA • DEBET"
+    Binding="{Binding NerD, StringFormat=Rp {0:N2}, TargetNullValue=''}"
+    Width="130" ElementStyle="{StaticResource RightCell}"/>
+
+                <DataGridTextColumn Header="NERACA • KREDIT"
+    Binding="{Binding NerK, StringFormat=Rp {0:N2}, TargetNullValue=''}"
+    Width="130" ElementStyle="{StaticResource RightCell}"/>
+
+                <DataGridTextColumn Header="T" Binding="{Binding TypeLetter}" Width="40"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+    </DockPanel>
+</Window>

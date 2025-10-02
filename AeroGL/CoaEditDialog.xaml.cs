@@ -61,19 +61,19 @@ namespace AeroGL
 
             if (!Regex.IsMatch(p1, @"^\d{3}$") || !Regex.IsMatch(p2, @"^\d{3}$") || !Regex.IsMatch(p3, @"^\d{3}$"))
             {
-                MessageBox.Show("Code3 harus 3-3-3 digit (xxx.xxx.xxx).", "Validasi",
+                MessageBox.Show("Code3 harus 3-3-3 digit (xxx.xxx.xxx).", "Validasi Error",
                     MessageBoxButton.OK, MessageBoxImage.Exclamation);
                 return;
             }
             if (!Regex.IsMatch(code3, @"^\d{3}\.\d{3}\.001$"))
             {
-                MessageBox.Show("Format Code3 wajib xxx.xxx.001 (hanya .001 yang diizinkan).", "Validasi",
-                    MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                MessageBox.Show("Format Code3 wajib xxx.xxx.001 (hanya .001 yang diizinkan).",
+                    "Validasi", MessageBoxButton.OK, MessageBoxImage.Exclamation);
                 return;
             }
             if (string.IsNullOrWhiteSpace(name))
             {
-                MessageBox.Show("Name wajib diisi.", "Validasi",
+                MessageBox.Show("Name wajib diisi.", "Validasi Error",
                     MessageBoxButton.OK, MessageBoxImage.Exclamation);
                 return;
             }
