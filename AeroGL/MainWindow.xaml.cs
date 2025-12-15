@@ -94,54 +94,69 @@ namespace AeroGL
             var key = char.ToUpperInvariant(m.Hotkey);
             if (key == 'X') { Close(); return; }
 
+            // Gate proyek untuk SEMUA menu kecuali Utility (J) dan Exit (X)
+            string projCode = null;
+            if (key != 'J' && key != 'X')
+            {
+                if (!AskProjectGate(out projCode)) return;
+            }
+
             if (key == 'A')
             {
                 var w = new CoaWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
                 w.ShowDialog();
                 return;
             }
             if (key == 'B')
             {
                 var w = new JournalWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
                 w.ShowDialog();
                 return;
             }
             if (key == 'C')
             {
                 var w = new ReportJurnalUmumWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
                 w.ShowDialog();
                 return;
             }
             if (key == 'F')
             {
-                var w = new ReportNeracaLajurWindow{ Owner = this };
+                var w = new ReportNeracaLajurWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
                 w.ShowDialog();
                 return;
             }
             if (key == 'G')
             {
-                var w = new ReportRugiLabaWindow{ Owner = this };
+                var w = new ReportRugiLabaWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
                 w.ShowDialog();
                 return;
             }
             if (key == 'H')
             {
-                var w = new ReportNeracaWindow{ Owner = this };
+                var w = new ReportNeracaWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
                 w.ShowDialog();
                 return;
             }
             if (key == 'J')
             {
-                var w = new UtilityWindow{ Owner = this };
+                // Utility TIDAK digate proyek
+                var w = new UtilityWindow { Owner = this };
                 w.ShowDialog();
                 return;
             }
-            // lainnya masih placeholder
+
+            // fallback
             MessageBox.Show(
                 m.Hotkey + " - " + m.Title + "\n\n(placeholder — fungsional menyusul)",
-                "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information
-            );
+                "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
         }
+
 
         private static char KeyToChar(Key key)
         {
@@ -176,6 +191,34 @@ namespace AeroGL
                 default: return '\0';
             }
         }
+        private bool AskProjectGate(out string projCode)
+        {
+            projCode = null;
+
+            // kalau SingleProject belum diisi, paksa user isi dulu di Utility A
+            if (!SingleProject.IsInitialized())
+            {
+                MessageBox.Show("Proyek belum di-setup. Buka Utility → A (Entry Kode Proyek) untuk mengisi.",
+                                "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
+                return false;
+            }
+
+            var dlg = new ProjectGateWindow { Owner = this };
+            if (dlg.ShowDialog() == true)
+            {
+                projCode = dlg.ProjectCode; // saat ini sama dgn Settings
+                return true;
+            }
+            return false;
+        }
+
+        // opsional: kalau window target punya properti ProjectCode, set otomatis
+        private static void SetProjectCodeIfSupported(Window w, string code)
+        {
+            var p = w.GetType().GetProperty("ProjectCode");
+            if (p != null && p.CanWrite && p.PropertyType == typeof(string)) p.SetValue(w, code, null);
+        }
+
     }
 
     public sealed class MenuEntry
