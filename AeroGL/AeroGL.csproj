@@ -133,6 +133,12 @@
     <Compile Include="ReportNeracaWindow.xaml.cs">
       <DependentUpon>ReportNeracaWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ReportPerincianWindow.xaml.cs">
+      <DependentUpon>ReportPerincianWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ReportPerRekeningWindow.xaml.cs">
+      <DependentUpon>ReportPerRekeningWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ReportRugiLabaWindow.xaml.cs">
       <DependentUpon>ReportRugiLabaWindow.xaml</DependentUpon>
     </Compile>
@@ -214,6 +220,14 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="ReportPerincianWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ReportPerRekeningWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="ReportRugiLabaWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -244,6 +258,9 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="aerogl.db">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

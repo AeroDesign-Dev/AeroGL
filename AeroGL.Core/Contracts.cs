@@ -53,8 +53,16 @@ namespace AeroGL.Core
     {
         Task<CoaBalance> Get(string code3, int year, int month);
         Task Upsert(CoaBalance b);
-        Task<List<CoaBalance>> ListByYear(string code3, int year);   
-        Task<List<int>> YearsAvailable(string code3);                 
+
+        // Method lama (per akun)
+        Task<List<CoaBalance>> ListByYear(string code3, int year);
+
+        // [WAJIB DITAMBAHKAN] Method baru untuk mengambil SEMUA akun dalam 1 tahun
+        Task<List<CoaBalance>> GetByYear(int year);
+
+        Task<List<int>> YearsAvailable(string code3);
+
+        Task<decimal> GetOpeningBalance(string code3, int year, int month);
     }
 
     public interface IJournalHeaderRepository
@@ -69,8 +77,11 @@ namespace AeroGL.Core
 
     public sealed class JournalLineRecord
     {
-        public long Id { get; set; }   // rowid
+        public long Id { get; set; }
         public string NoTran { get; set; }
+
+        public string Tanggal { get; set; }
+
         public string Code2 { get; set; }
         public string Side { get; set; }
         public decimal Amount { get; set; }
@@ -81,9 +92,14 @@ namespace AeroGL.Core
     {
         Task<List<JournalLineRecord>> ListByNoTran(string noTran);
         Task<JournalLineRecord> GetById(long id);
-        Task<long> Insert(JournalLine line);                 // return rowid
-        Task UpdateById(long id, JournalLine lineNew);       // edit
+        Task<long> Insert(JournalLine line);
+        Task UpdateById(long id, JournalLine lineNew);
         Task DeleteByNoTran(string noTran);
+
+        // [BARU] Method buat laporan buku besar
+        Task<decimal> GetMutationSum(string code2, System.DateTime start, System.DateTime end);
+        Task<List<JournalLineRecord>> GetLedgerModeM(string code2, System.DateTime start, System.DateTime end);
+        Task<List<JournalLineRecord>> GetLedgerModeN(string code2, System.DateTime start, System.DateTime end);
     }
 
     public interface IAliasRepository

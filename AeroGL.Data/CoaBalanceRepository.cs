@@ -54,5 +54,33 @@ ORDER BY Year", new { c = code3 });
                 return rows.AsList();
             }
         }
+        public async Task<decimal> GetOpeningBalance(string code3, int year, int month)
+        {
+            using (var cn = Db.Open())
+            {
+                var val = await cn.ExecuteScalarAsync<decimal?>(@"
+                    SELECT Saldo 
+                    FROM CoaBalance 
+                    WHERE Code3=@c AND Year=@y AND Month=@m",
+                    new { c = code3, y = year, m = month });
+
+                return val ?? 0m;
+            }
+        }
+
+        public async Task<List<CoaBalance>> GetByYear(int year)
+        {
+            using (var cn = Db.Open())
+            {
+                // Ambil semua saldo untuk tahun YYYY
+                var rows = await cn.QueryAsync<CoaBalance>(@"
+            SELECT Code3,Year,Month,Saldo,Debet,Kredit 
+            FROM CoaBalance 
+            WHERE Year=@y",
+                    new { y = year });
+                return rows.AsList();
+            }
+        }
     }
+
 }

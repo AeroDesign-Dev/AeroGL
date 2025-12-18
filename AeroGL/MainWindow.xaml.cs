@@ -122,6 +122,13 @@ namespace AeroGL
                 w.ShowDialog();
                 return;
             }
+            if (key == 'D')
+            {
+                var w = new ReportPerRekeningWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
+                w.ShowDialog();
+                return;
+            }
             if (key == 'F')
             {
                 var w = new ReportNeracaLajurWindow { Owner = this };
@@ -139,6 +146,13 @@ namespace AeroGL
             if (key == 'H')
             {
                 var w = new ReportNeracaWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
+                w.ShowDialog();
+                return;
+            }
+            if (key == 'I')
+            {
+                var w = new ReportPerincianWindow { Owner = this };
                 SetProjectCodeIfSupported(w, projCode);
                 w.ShowDialog();
                 return;
