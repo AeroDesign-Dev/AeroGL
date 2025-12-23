@@ -100,6 +100,19 @@ namespace AeroGL.Data
                       WHERE NoTran = OLD.NoTran;
                     END;
                     ";
+
+                cmd.CommandText += @"
+                    -- 7) Config (Tabel Setting)
+                    CREATE TABLE IF NOT EXISTS Config (
+                        Key TEXT PRIMARY KEY,
+                        Val TEXT
+                    );
+
+                    -- Default Value (AMAN: Gak akan nimpah kalau user udah ganti)
+                    INSERT OR IGNORE INTO Config(Key, Val) VALUES ('LabaDitahan', '016');
+                    INSERT OR IGNORE INTO Config(Key, Val) VALUES ('LabaBerjalan', '017');
+                ";
+
                 cmd.ExecuteNonQuery();
             }
         }

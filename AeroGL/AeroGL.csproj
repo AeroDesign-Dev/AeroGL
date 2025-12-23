@@ -117,6 +117,9 @@
     <Compile Include="EntryKodeProyekWindow.xaml.cs">
       <DependentUpon>EntryKodeProyekWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="EntryTabelWindow.xaml.cs">
+      <DependentUpon>EntryTabelWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="PasswordPromptWindow.xaml.cs">
       <DependentUpon>PasswordPromptWindow.xaml</DependentUpon>
     </Compile>
@@ -156,6 +159,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="CoaWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="EntryTabelWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

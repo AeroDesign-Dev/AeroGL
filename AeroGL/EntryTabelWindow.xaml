@@ -1,0 +1,101 @@
+﻿<Window x:Class="AeroGL.EntryTabelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Entry Tabel Konfigurasi" Height="380" Width="600"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="{StaticResource BgDark}"
+        FontFamily="Consolas" FontSize="14">
+
+    <Window.Resources>
+        <DataTemplate x:Key="CoaTemplate">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Code3}" FontWeight="Bold" Width="100"/>
+                <TextBlock Text=" — " Foreground="Gray"/>
+                <TextBlock Text="{Binding Name}"/>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="180"/>
+            <ColumnDefinition Width="120"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="KONFIGURASI AKUN LABA" 
+                   Foreground="{StaticResource BrandLight}" 
+                   FontWeight="Bold" FontSize="18" Margin="0,0,0,20" 
+                   HorizontalAlignment="Center"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Laba Ditahan:" 
+                   Foreground="White" VerticalAlignment="Center" Margin="0,0,10,15"/>
+
+        <Grid Grid.Row="1" Grid.Column="1" Margin="0,0,10,15">
+            <TextBox x:Name="TxtLabaDitahan" Height="30" Padding="4"
+                     Background="White" BorderThickness="0"
+                     TextChanged="Txt_TextChanged" 
+                     PreviewKeyDown="Txt_PreviewKeyDown"
+                     LostFocus="Txt_LostFocus"/>
+
+            <Popup x:Name="PopDitahan" Placement="Bottom" StaysOpen="False" 
+                   AllowsTransparency="True" Width="400">
+                <Border Background="#222" BorderBrush="#444" BorderThickness="1">
+                    <ListBox x:Name="LstDitahan" MaxHeight="200" Background="Transparent" Foreground="#9EEAF9"
+                             ItemTemplate="{StaticResource CoaTemplate}"
+                             MouseDoubleClick="Lst_MouseDoubleClick"
+                             PreviewKeyDown="Lst_PreviewKeyDown"/>
+                </Border>
+            </Popup>
+        </Grid>
+
+        <TextBlock x:Name="LblNamaDitahan" Grid.Row="1" Grid.Column="2" 
+                   Text="..." Foreground="#FFBC00" VerticalAlignment="Center" FontStyle="Italic" Margin="0,0,0,15"/>
+
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Laba Berjalan:" 
+                   Foreground="White" VerticalAlignment="Center" Margin="0,0,10,15"/>
+
+        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,10,15">
+            <TextBox x:Name="TxtLabaBerjalan" Height="30" Padding="4"
+                     Background="White" BorderThickness="0"
+                     TextChanged="Txt_TextChanged" 
+                     PreviewKeyDown="Txt_PreviewKeyDown"
+                     LostFocus="Txt_LostFocus"/>
+
+            <Popup x:Name="PopBerjalan" Placement="Bottom" StaysOpen="False" 
+                   AllowsTransparency="True" Width="400">
+                <Border Background="#222" BorderBrush="#444" BorderThickness="1">
+                    <ListBox x:Name="LstBerjalan" MaxHeight="200" Background="Transparent" Foreground="#9EEAF9"
+                             ItemTemplate="{StaticResource CoaTemplate}"
+                             MouseDoubleClick="Lst_MouseDoubleClick"
+                             PreviewKeyDown="Lst_PreviewKeyDown"/>
+                </Border>
+            </Popup>
+        </Grid>
+
+        <TextBlock x:Name="LblNamaBerjalan" Grid.Row="2" Grid.Column="2" 
+                   Text="..." Foreground="#FFBC00" VerticalAlignment="Center" FontStyle="Italic" Margin="0,0,0,15"/>
+
+
+        <TextBlock Grid.Row="3" Grid.ColumnSpan="3" 
+                   Text="* Pilih akun induk (Group/Detail). Sistem akan otomatis menggunakan Prefix-nya untuk laporan." 
+                   Foreground="Gray" FontStyle="Italic" FontSize="12" 
+                   TextWrapping="Wrap" Margin="0,10,0,0"/>
+
+        <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Orientation="Horizontal" 
+                    HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button x:Name="BtnSimpan" Content="SIMPAN [Enter]" Width="120" Height="35" 
+                    Click="BtnSimpan_Click" Background="#FFBC00" FontWeight="Bold" Margin="0,0,10,0"/>
+            <Button x:Name="BtnBatal" Content="BATAL [Esc]" Width="100" Height="35" 
+                    Click="BtnBatal_Click" Background="#DDDDDD"/>
+        </StackPanel>
+    </Grid>
+</Window>

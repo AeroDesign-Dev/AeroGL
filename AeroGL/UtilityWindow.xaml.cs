@@ -92,7 +92,7 @@ namespace AeroGL
             }
             return false;
         }
-        private void OpenSelection()
+        private async void OpenSelection()
         {
             var m = MenuList.SelectedItem as MenuEntry;
             if (m == null) return;
@@ -113,46 +113,187 @@ namespace AeroGL
                 if (!PromptAndVerifyUtilityPassword()) return;
             }
 
-            // Menu E (Ubah Password):
-            // - Kalau belum diset: langsung buka (first-time setup)
-            // - Kalau sudah diset: minta password dulu
-            if (key == 'E')
-            {
-                if (IsUtilityPasswordSet())
-                {
-                    if (!PromptAndVerifyUtilityPassword()) return;
-                }
-                var w = new ChangePasswordWindow { Owner = this };
-                w.ShowDialog();
-                return;
-            }
-
-            // Buka menu sesuai pilihan
             switch (key)
             {
                 case 'A':
                     var w = new EntryKodeProyekWindow { Owner = this };
                     w.ShowDialog();
                     break;
+
                 case 'B':
-                    MessageBox.Show("B - Entry Tabel\n\n(placeholder)", "AeroGL",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Membuka Window Entry Tabel yang baru kita buat
+                    var wTabel = new EntryTabelWindow { Owner = this };
+                    wTabel.ShowDialog();
                     break;
-                case 'C':
-                    MessageBox.Show("C - Proses Akhir Bulan\n\n(placeholder)", "AeroGL",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+
+                case 'C': // --- PROSES AKHIR BULAN (Monthly Closing) ---
+
+                    // 1. Tentukan mau close bulan apa.
+                    // IDEALNYA: Lo bikin Window kecil (DatePicker) buat user pilih bulan.
+                    // TAPI BUAT SEKARANG: Kita default ke "Bulan Lalu" (Common practice).
+                    var today = DateTime.Now;
+                    int targetMonth = today.Month - 1;
+                    int targetYear = today.Year;
+
+                    // Handle ganti tahun (Kalau sekarang Januari, close Desember tahun lalu)
+                    if (targetMonth == 0)
+                    {
+                        targetMonth = 12;
+                        targetYear--;
+                    }
+
+                    // 2. Validasi (Biar gak nabrak aturan Month 12 harus Year End)
+                    if (targetMonth == 12)
+                    {
+                        MessageBox.Show("Bulan 12 adalah Tutup Tahun.\nGunakan menu 'D' (Proses Akhir Tahun).",
+                            "Salah Menu", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        break;
+                    }
+
+                    // 3. Konfirmasi ke User
+                    var confirmClose = MessageBox.Show(
+                        $"Yakin ingin melakukan PROSES AKHIR BULAN untuk periode: {targetMonth}/{targetYear}?\n\n" +
+                        "Proses ini akan:\n" +
+                        "1. Mengunci transaksi bulan tersebut.\n" +
+                        "2. Memindahkan saldo akhir ke saldo awal bulan depan.\n" +
+                        "3. Me-reset Pendapatan & Biaya jadi 0 (Sesuai mode DOS).\n\n" +
+                        "Lanjutkan?",
+                        "Konfirmasi Closing",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    if (confirmClose == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            // UI Feedback biar user tau lagi loading
+                            this.Cursor = Cursors.Wait;
+                            TxtDate.Text = "Processing Closing...";
+
+                            // --- CALL SERVICE YANG KITA BUAT TADI ---
+                            var closeSvc = new AeroGL.Data.MonthlyClosingService();
+                            await closeSvc.RunClosing(targetYear, targetMonth);
+
+                            MessageBox.Show("Sukses! Proses Akhir Bulan selesai.", "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Gagal Closing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                        finally
+                        {
+                            // Balikin UI ke semula
+                            this.Cursor = Cursors.Arrow;
+                            TxtDate.Text = DateTime.Now.ToString("dd-MM-yyyy");
+                        }
+                    }
                     break;
-                case 'D':
-                    MessageBox.Show("D - Proses Akhir Tahun\n\n(placeholder)", "AeroGL",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                case 'D': // --- PROSES AKHIR TAHUN (Year End - Opsi A: DOS Style) ---
+
+                    // Asumsi: User menjalankan ini untuk menutup tahun berjalan.
+                    // Kalau mau aman, bisa cek bulan. Kalau bulan 1, mungkin mau tutup tahun lalu (Year-1).
+                    // Tapi default-nya kita set Tahun Sekarang.
+                    int closingYear = DateTime.Now.Year;
+
+                    // Warning Message yang JUJUR sesuai Opsi A
+                    var confirmYear = MessageBox.Show(
+                        $"PERINGATAN: ANDA AKAN MELAKUKAN TUTUP BUKU TAHUN {closingYear}.\n\n" +
+                        "Proses ini akan:\n" +
+                        "1. Me-RESET semua akun Pendapatan & Biaya menjadi 0.\n" +
+                        "2. Membentuk Saldo Awal tahun depan.\n" +
+                        "3. TIDAK menjurnal otomatis Laba ke Modal (Harus Jurnal Manual nanti).\n\n" +
+                        "Pastikan semua transaksi bulan 1-12 sudah selesai.\n" +
+                        "LANJUTKAN?",
+                        "Konfirmasi Year End",
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                    if (confirmYear == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            // UI Feedback
+                            this.Cursor = Cursors.Wait;
+                            TxtDate.Text = "Proses Year End...";
+
+                            // Panggil Service Opsi A yang tadi kita buat
+                            var yeSvc = new AeroGL.Data.YearEndClosingService();
+                            await yeSvc.RunYearEnd(closingYear);
+
+                            MessageBox.Show($"Tutup Buku Tahun {closingYear} SELESAI.\n" +
+                                $"Saldo Awal Tahun {closingYear + 1} sudah terbentuk.\n" +
+                                "Silakan cek Neraca Awal dan lakukan penyesuaian manual jika diperlukan.",
+                                "Sukses", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Gagal Year End: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                        finally
+                        {
+                            // Reset UI
+                            this.Cursor = Cursors.Arrow;
+                            TxtDate.Text = DateTime.Now.ToString("dd-MM-yyyy");
+                        }
+                    }
                     break;
-                case 'F':
-                    MessageBox.Show("F - Reposting Data\n\n(placeholder)", "AeroGL",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+
+                case 'E':
+                    // Menu E (Ubah Password) - logic check passwordnya unik dikit
+                    if (IsUtilityPasswordSet())
+                    {
+                        if (!PromptAndVerifyUtilityPassword()) return;
+                    }
+                    var wp = new ChangePasswordWindow { Owner = this };
+                    wp.ShowDialog();
+                    break;
+
+                case 'F': // --- FITUR REPOSTING DATA ---
+                    var year = DateTime.Now.Year; // Bisa diganti prompt pilih tahun kalau mau advanced
+
+                    var res = MessageBox.Show(
+                        $"Yakin mau Reposting Data tahun {year}?\n\n" +
+                        "Proses ini akan:\n" +
+                        "1. Mereset data saldo Debet/Kredit.\n" +
+                        "2. Menghitung ulang semua Jurnal dari awal.\n" +
+                        "3. Memperbaiki Saldo Akhir yang tidak balance.\n\n" +
+                        "Lanjutkan?",
+                        "Konfirmasi Reposting",
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                    if (res == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            this.Cursor = Cursors.Wait;
+                            TxtDate.Text = "Sedang Memproses..."; // Status bar update
+
+                            var svc = new AeroGL.Data.RepostingService();
+
+                            // Update text realtime dari service
+                            svc.OnProgress += (msg) => { TxtDate.Text = msg; };
+
+                            await svc.RunReposting(year);
+
+                            TxtDate.Text = DateTime.Now.ToString("dd-MM-yyyy"); // Balikin tanggal
+                            MessageBox.Show("Sukses! Proses Reposting Selesai.", "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        catch (Exception ex)
+                        {
+                            TxtDate.Text = "Error!";
+                            MessageBox.Show($"Gagal Reposting: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                        finally
+                        {
+                            this.Cursor = Cursors.Arrow;
+                        }
+                    }
+                    break;
+
+                default:
+                    MessageBox.Show($"Fitur {key} belum tersedia.", "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
                     break;
             }
         }
-
 
         // Ganti switch expression -> switch statement klasik
         private static char KeyToChar(Key key)
