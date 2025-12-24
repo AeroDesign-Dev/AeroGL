@@ -17,52 +17,76 @@ namespace AeroGL
         private readonly CoaBalanceRepository _balanceRepo;
 
         // --- DEFINISI WARNA (AeroGL Theme) ---
-        private readonly SolidColorBrush _brushText = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EAEAEA"));
         private readonly SolidColorBrush _brushHeader = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFE082")); // Gold
         private readonly SolidColorBrush _brushTotal = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#86F7A1"));  // Green
         private readonly SolidColorBrush _brushLabel = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9EEAF9"));  // Cyan
-        private readonly SolidColorBrush _brushNegative = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B")); // Bright Red
 
+        private readonly SolidColorBrush _brushNegative;
+        private readonly SolidColorBrush _brushText;
         // --- MAPPING PREFIX (Sesuai Logic DBF Legacy) ---
-        private readonly List<ReportSectionDef> _sections = new List<ReportSectionDef>
-        {
-            new ReportSectionDef("KAS", "001", false),
-            new ReportSectionDef("BANK", "002", false),
-            new ReportSectionDef("PIUTANG DAGANG", "003", false),
-            new ReportSectionDef("PERSEDIAAN BARANG", "004", false),
-            new ReportSectionDef("PIUTANG KARYAWAN", "005", false),
-            new ReportSectionDef("PAJAK DIBAYAR DIMUKA", "006", false),
-            new ReportSectionDef("AKTIVA TETAP", "007", false),
-            new ReportSectionDef("AKUMULASI PENYUSUTAN", "008", true), // Normal Kredit (True)
-            new ReportSectionDef("HUTANG DAGANG", "010", true),
-            new ReportSectionDef("HUTANG BANK", "011", true),
-            new ReportSectionDef("HUTANG LAIN-LAIN", "012", true),
-            new ReportSectionDef("BIAYA YMH DIBAYAR", "013", true),
-            new ReportSectionDef("PAJAK YMH DIBAYAR", "014", true),
-            new ReportSectionDef("MODAL", "015", true),
-
-            // --- REVISI HEADER ---
-            new ReportSectionDef("LABA (RUGI)", "016", true),          // Prefix 016: Laba Ditahan (Retained Earnings)
-            new ReportSectionDef("LABA (RUGI) BERJALAN", "017", true), // Prefix 017: Laba Tahun Berjalan
-            // ---------------------
-
-            new ReportSectionDef("PENJUALAN", "020", true),
-            new ReportSectionDef("HARGA POKOK PENJUALAN", "021", false),
-            new ReportSectionDef("BIAYA PENJUALAN", "022", false),
-            new ReportSectionDef("BIAYA UMUM & ADM", "023", false),
-            new ReportSectionDef("PENDAPATAN LAIN-LAIN", "025", true),
-            new ReportSectionDef("BIAYA LAIN-LAIN", "026", false),
-        };
+        private List<ReportSectionDef> _sections;
 
         public ReportPerincianWindow()
         {
             InitializeComponent();
 
-            // Instansiasi Repo
+            _brushNegative = (SolidColorBrush)Application.Current.Resources["GlobalNegativeBrush"];
+            _brushText = (SolidColorBrush)Application.Current.Resources["GlobalTextBrush"] ?? Brushes.White;
             _coaRepo = new CoaRepository();
             _balanceRepo = new CoaBalanceRepository();
 
+            // PANGGIL FUNGSI INISIALISASI BARU
+            InitializeReportSections();
+
             LoadFilters();
+        }
+
+        // --- FUNGSI BARU UNTUK BUILD SECTIONS SECARA DINAMIS ---
+        private void InitializeReportSections()
+        {
+            // Helper kecil buat ambil prefix dari Config (misal "016.001.001" -> "016")
+            string GetPrefix(string fullCode)
+            {
+                if (string.IsNullOrEmpty(fullCode)) return "???";
+                var parts = fullCode.Split('.');
+                return parts[0]; // Ambil bagian depan saja
+            }
+
+            // Ambil dari DB Config
+            string pLabaDitahan = GetPrefix(AccountConfig.PrefixLabaDitahan);
+            string pLabaBerjalan = GetPrefix(AccountConfig.PrefixLabaBerjalan);
+
+            _sections = new List<ReportSectionDef>
+            {
+                new ReportSectionDef("KAS", "001", false),
+                new ReportSectionDef("BANK", "002", false),
+                new ReportSectionDef("PIUTANG DAGANG", "003", false),
+                new ReportSectionDef("PERSEDIAAN BARANG", "004", false),
+                new ReportSectionDef("PIUTANG KARYAWAN", "005", false),
+                new ReportSectionDef("PAJAK DIBAYAR DIMUKA", "006", false),
+                new ReportSectionDef("AKTIVA TETAP", "007", false),
+                new ReportSectionDef("AKUMULASI PENYUSUTAN", "008", true),
+                new ReportSectionDef("HUTANG DAGANG", "010", true),
+                new ReportSectionDef("HUTANG BANK", "011", true),
+                new ReportSectionDef("HUTANG LAIN-LAIN", "012", true),
+                new ReportSectionDef("BIAYA YMH DIBAYAR", "013", true),
+                new ReportSectionDef("PAJAK YMH DIBAYAR", "014", true),
+                
+                // Modal Disetor tetap Hardcode 015 (sesuai request legacy)
+                new ReportSectionDef("MODAL", "015", true),
+
+                // === BAGIAN INI JADI DINAMIS ===
+                new ReportSectionDef("LABA (RUGI)", pLabaDitahan, true),
+                new ReportSectionDef("LABA (RUGI) BERJALAN", pLabaBerjalan, true), 
+                // ===============================
+
+                new ReportSectionDef("PENJUALAN", "020", true),
+                new ReportSectionDef("HARGA POKOK PENJUALAN", "021", false),
+                new ReportSectionDef("BIAYA PENJUALAN", "022", false),
+                new ReportSectionDef("BIAYA UMUM & ADM", "023", false),
+                new ReportSectionDef("PENDAPATAN LAIN-LAIN", "025", true),
+                new ReportSectionDef("BIAYA LAIN-LAIN", "026", false),
+            };
         }
 
         private void LoadFilters()

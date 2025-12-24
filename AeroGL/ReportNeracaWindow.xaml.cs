@@ -158,8 +158,11 @@ WHERE c.Code3 LIKE '%.%.%'";
 
             // MODAL (semua anak)
             var modalDisetor = SumByFirst(raw, "015");
-            var labaDitahan = SumByFirst(raw, "016");
-            var labaBerjalan = SumByFirst(raw, "017");
+            string pDitahan = FirstSeg(AccountConfig.PrefixLabaDitahan);
+            string pBerjalan = FirstSeg(AccountConfig.PrefixLabaBerjalan);
+
+            var labaDitahan = SumByFirst(raw, pDitahan);
+            var labaBerjalan = SumByFirst(raw, pBerjalan);
 
             var vm = new NeracaView
             {

@@ -133,6 +133,9 @@
     <Compile Include="ReportNeracaLajurWindow.xaml.cs">
       <DependentUpon>ReportNeracaLajurWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ReportNeracaPercobaanWindow.xaml.cs">
+      <DependentUpon>ReportNeracaPercobaanWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ReportNeracaWindow.xaml.cs">
       <DependentUpon>ReportNeracaWindow.xaml</DependentUpon>
     </Compile>
@@ -220,6 +223,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="ReportNeracaLajurWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ReportNeracaPercobaanWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

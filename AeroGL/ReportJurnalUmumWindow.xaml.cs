@@ -91,6 +91,7 @@ namespace AeroGL
         {
             var d1 = DpFrom.SelectedDate ?? DateTime.Today;
             var d2 = DpTo.SelectedDate ?? DateTime.Today;
+
             if (d2 < d1)
             {
                 MessageBox.Show("Tanggal sampai harus >= tanggal dari.", "Validasi",
@@ -100,15 +101,30 @@ namespace AeroGL
 
             try
             {
+                // 1. Kasih feedback kalau lagi loading
                 Mouse.OverrideCursor = Cursors.Wait;
+                TxtInfo.Text = "Sedang mengambil data...";
                 GridRows.ItemsSource = null;
 
+                // 2. Load Data
                 var rows = await LoadReportRows(d1, d2);
                 GridRows.ItemsSource = rows;
+
+                // 3. Update Status Text berdasarkan hasil
+                if (rows != null && rows.Count > 0)
+                {
+                    // Tampilkan jumlah baris (format N0 biar ada titik ribuan, misal: 1.239)
+                    TxtInfo.Text = $"Selesai. Ditampilkan {rows.Count:N0} baris.";
+                }
+                else
+                {
+                    TxtInfo.Text = "Tidak ada data pada periode ini.";
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "Gagal memuat laporan", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtInfo.Text = "Error.";
             }
             finally
             {

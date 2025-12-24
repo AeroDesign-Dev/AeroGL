@@ -129,6 +129,13 @@ namespace AeroGL
                 w.ShowDialog();
                 return;
             }
+            if (key == 'E')
+            {
+                var w = new ReportNeracaPercobaanWindow { Owner = this };
+                SetProjectCodeIfSupported(w, projCode);
+                w.ShowDialog();
+                return;
+            }
             if (key == 'F')
             {
                 var w = new ReportNeracaLajurWindow { Owner = this };

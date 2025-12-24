@@ -30,6 +30,7 @@ namespace AeroGL
         }
 
         // ==================== LOGIC UTAMA ====================
+        private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
         private async void BtnShow_Click(object sender, RoutedEventArgs e)
         {
             if (DpFrom.SelectedDate == null || DpTo.SelectedDate == null) return;
@@ -270,38 +271,60 @@ namespace AeroGL
     {
         public DateTime? Tanggal { get; set; }
         public string NoBukti { get; set; }
-        public string Lawan { get; set; } // Kode Akun (Perkiraan)
+        public string Lawan { get; set; }
         public string Keterangan { get; set; }
 
+        // PENTING: XAML akan mengikat langsung ke property Decimal ini
+        // supaya bisa diformat N2 dan diwarnai merah otomatis oleh Converter.
         public decimal? Debet { get; set; }
         public decimal? Kredit { get; set; }
         public decimal? Saldo { get; set; }
 
         public bool IsHeader { get; set; }
         public bool IsTotal { get; set; }
-        public bool IsSaldoRow { get; set; } // Baris khusus saldo awal
+        public bool IsSaldoRow { get; set; }
 
-        // Helper properties untuk display format
+        // Helper string (Opsional, XAML baru kita sebenarnya tidak pakai ini lagi)
+        // Tapi kita rapikan saja biar kalau dipanggil tetap benar (pakai minus, bukan kurung)
         public string TanggalStr => Tanggal?.ToString("dd-MM-yy") ?? "";
-        public string DebetStr => FormatNum(Debet);
-        public string KreditStr => FormatNum(Kredit);
+
+        // Format N2 = Ada koma ribuan, 2 desimal, dan minus sign otomatis
+        public string DebetStr => Debet?.ToString("N2", CultureInfo.GetCultureInfo("id-ID")) ?? "";
+        public string KreditStr => Kredit?.ToString("N2", CultureInfo.GetCultureInfo("id-ID")) ?? "";
 
         public string SaldoStr
         {
             get
             {
                 if (Saldo == null) return "";
-                // Format saldo negatif pakai kurung ()
-                decimal val = Saldo.Value;
-                string s = Math.Abs(val).ToString("#,##0.00", CultureInfo.GetCultureInfo("id-ID"));
-                return val < 0 ? $"({s})" : s;
+                // HAPUS LOGIKA KURUNG (), ganti formatting standar N2
+                return Saldo.Value.ToString("N2", CultureInfo.GetCultureInfo("id-ID"));
             }
         }
-
-        private string FormatNum(decimal? val)
+    }
+    public class NegativeToColorConverter : System.Windows.Data.IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (val == null || val == 0) return "";
-            return val.Value.ToString("#,##0.00", CultureInfo.GetCultureInfo("id-ID"));
+            // Cek apakah angka negatif
+            bool isNegative = false;
+            if (value is decimal d && d < 0) isNegative = true;
+            else if (value is double db && db < 0) isNegative = true;
+            else if (value is int i && i < 0) isNegative = true;
+
+            if (isNegative)
+            {
+                // AMBIL DARI GLOBAL APP.XAML
+                return Application.Current.Resources["GlobalNegativeBrush"];
+            }
+
+            // Warna default (Text biasa)
+            return Application.Current.Resources["GlobalTextBrush"];
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
         }
     }
 }

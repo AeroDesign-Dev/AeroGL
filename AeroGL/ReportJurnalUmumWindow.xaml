@@ -4,41 +4,24 @@
         Title="Print Jurnal Umum (Screen)" Height="560" Width="960"
         Background="#15152A" FontFamily="Consolas" FontSize="14"
         WindowStartupLocation="CenterOwner">
-    <DockPanel Margin="12">
 
-        <!-- Toolbar: range tanggal + tombol -->
-        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <!-- label + tanggal -->
-                <ColumnDefinition Width="Auto"/>
-                <!-- tombol tampilkan + print -->
-                <ColumnDefinition Width="*"/>
-                <!-- space fleksibel -->
-                <ColumnDefinition Width="Auto"/>
-                <!-- tombol esc -->
-            </Grid.ColumnDefinitions>
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-            <!-- Bagian tanggal -->
-            <StackPanel Orientation="Horizontal" Grid.Column="0">
+        <Border Grid.Row="0" Background="#2A2752" Padding="10" CornerRadius="6" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="Tanggal" Foreground="#9EEAF9" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <DatePicker x:Name="DpFrom" Width="130" Margin="0,0,8,0"/>
+                <DatePicker x:Name="DpFrom" Width="130" Margin="0,0,8,0" VerticalContentAlignment="Center"/>
                 <TextBlock Text="s/d" Foreground="#9EEAF9" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <DatePicker x:Name="DpTo" Width="130" Margin="0,0,12,0"/>
+                <DatePicker x:Name="DpTo" Width="130" Margin="0,0,12,0" VerticalContentAlignment="Center"/>
             </StackPanel>
+        </Border>
 
-            <!-- Tombol tampilkan + print -->
-            <StackPanel Orientation="Horizontal" Grid.Column="1">
-                <Button x:Name="BtnShow" Content="Tampilkan (Enter)" Click="BtnShow_Click" Margin="0,0,8,0"/>
-                <Button Content="Print (P)" Click="BtnPrint_Click"/>
-            </StackPanel>
-
-            <!-- Tombol ESC di kanan -->
-            <Button Content="Tutup (Esc)" Click="BtnClose_Click" Grid.Column="3" HorizontalAlignment="Right"/>
-        </Grid>
-
-        <!-- Grid hasil -->
-        <DataGrid x:Name="GridRows"
+        <DataGrid Grid.Row="1" x:Name="GridRows"
           AutoGenerateColumns="False"
           IsReadOnly="True"
           Background="Transparent"
@@ -50,7 +33,6 @@
           ScrollViewer.VerticalScrollBarVisibility="Auto"
           ScrollViewer.HorizontalScrollBarVisibility="Auto">
 
-            <!-- Semua resource dalam SATU blok -->
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#334"/>
@@ -83,7 +65,6 @@
                     <Setter Property="Foreground" Value="White"/>
                 </Style>
 
-                <!-- Right align helper -->
                 <Style x:Key="RightCell" TargetType="{x:Type TextBlock}">
                     <Setter Property="TextAlignment" Value="Right"/>
                     <Setter Property="Padding" Value="6,2"/>
@@ -96,16 +77,31 @@
                 <DataGridTextColumn Header="No. Transaksi" Binding="{Binding NoTranTampil}" Width="140"/>
                 <DataGridTextColumn Header="Keterangan (No Rek — Nama Akun)" Binding="{Binding Ket}" Width="*"/>
                 <DataGridTextColumn Header="DEBET"
-    Binding="{Binding DebetStr, StringFormat=Rp {0}, TargetNullValue=''}"
-    Width="140"
-    ElementStyle="{StaticResource RightCell}" />
+                    Binding="{Binding DebetStr, StringFormat=Rp {0}, TargetNullValue=''}"
+                    Width="140"
+                    ElementStyle="{StaticResource RightCell}" />
                 <DataGridTextColumn Header="KREDIT"
-    Binding="{Binding KreditStr, StringFormat=Rp {0}, TargetNullValue=''}"
-    Width="140"
-    ElementStyle="{StaticResource RightCell}" />
+                    Binding="{Binding KreditStr, StringFormat=Rp {0}, TargetNullValue=''}"
+                    Width="140"
+                    ElementStyle="{StaticResource RightCell}" />
                 <DataGridTextColumn Header="Tipe" Binding="{Binding Type}" Width="60"/>
             </DataGrid.Columns>
         </DataGrid>
 
-    </DockPanel>
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="TxtInfo" Grid.Column="0" Foreground="#AAA" VerticalAlignment="Center" Text="Siap."/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="BtnShow" Content="Tampilkan (Enter)" Click="BtnShow_Click" Margin="0,0,8,0" Height="30" Padding="10,0" Background="#444466" Foreground="White"/>
+                <Button Content="Print (P)" Click="BtnPrint_Click" Margin="0,0,8,0" Height="30" Padding="10,0" Background="#2D8F6F" Foreground="White"/>
+                <Button Content="Tutup (Esc)" Click="BtnClose_Click" Height="30" Padding="10,0" Background="#FF6060" Foreground="White"/>
+            </StackPanel>
+        </Grid>
+
+    </Grid>
 </Window>

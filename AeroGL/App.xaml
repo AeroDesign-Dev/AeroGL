@@ -10,7 +10,9 @@
         <SolidColorBrush x:Key="BrandLight" Color="#FF8E75BB"/>
         <SolidColorBrush x:Key="TextLight"  Color="#FFFFFF"/>
         <SolidColorBrush x:Key="LineCyan"   Color="#29B6F6"/>
-
+        <SolidColorBrush x:Key="GlobalNegativeBrush" Color="#FF6B6B"/>
+        <SolidColorBrush x:Key="GlobalTextBrush" Color="#EAEAEA"/>
+        
         <!-- ScrollBar Dark Custom -->
         <Style TargetType="ScrollBar">
             <Setter Property="Background" Value="#FF5C567C"/>

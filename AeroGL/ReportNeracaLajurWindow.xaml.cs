@@ -5,13 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Printing;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Printing;
 
 namespace AeroGL
 {
@@ -19,6 +19,16 @@ namespace AeroGL
     {
         private readonly ICoaRepository _coaRepo = new CoaRepository();
         public string CompanyName { get; set; } // fallback: "Nama PT"
+
+        // Cache for Print
+        private List<TrialRow> _lastRows;
+        private DateTime _lastD1;
+        private DateTime _lastD2;
+
+        // Styles for FlowDocument
+        private readonly SolidColorBrush _brushText = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EAEAEA"));
+        private readonly SolidColorBrush _brushHeader = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9EEAF9"));
+        private readonly SolidColorBrush _brushBlack = Brushes.Black;
 
         public ReportNeracaLajurWindow()
         {
@@ -45,53 +55,217 @@ namespace AeroGL
                 bool ytd = CboMode.SelectedIndex == 1;
 
                 var (d1, d2) = MakeRange(year, month, ytd);
+                _lastD1 = d1; _lastD2 = d2;
 
                 Mouse.OverrideCursor = Cursors.Wait;
                 TxtInfo.Text = "Menghitung…";
+                BtnShow.IsEnabled = false;
 
                 var rows = await BuildTrialBalance(d1, d2, ytd);
-                GridRows.ItemsSource = rows;
+                _lastRows = rows;
+
+                // RENDER TO SCREEN
+                reportDoc.Blocks.Clear();
+                RenderContentToDoc(reportDoc, rows, d1, d2, false); // false = screen mode
 
                 TxtInfo.Text = $"{rows.Count} baris. Periode: {FormatPeriod(d1, d2)}";
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "Gagal", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtInfo.Text = "Error.";
             }
-            finally { Mouse.OverrideCursor = null; }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+                BtnShow.IsEnabled = true;
+            }
         }
 
         private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
 
         private void BtnPrint_Click(object sender, RoutedEventArgs e)
         {
-            var items = GridRows.ItemsSource as IList<TrialRow>;
-            if (items == null || items.Count == 0)
+            if (_lastRows == null || _lastRows.Count == 0)
             {
                 MessageBox.Show("Belum ada data ditampilkan.");
                 return;
             }
 
-            int year = int.TryParse(TxtYear.Text, out var y) ? y : DateTime.Today.Year;
-            int month = CboMonth.SelectedIndex + 1;
-            bool ytd = CboMode.SelectedIndex == 1;
-            var (d1, d2) = MakeRange(year, month, ytd);
-
             var dlg = new PrintDialog();
             if (dlg.ShowDialog() == true)
             {
                 dlg.PrintTicket.PageOrientation = PageOrientation.Landscape;
-                double pad = 36;
-                double avail = dlg.PrintableAreaWidth - pad * 2;
 
-                var doc = BuildFlowDocument(items, d1, d2, avail, pad);
-                doc.PageWidth = dlg.PrintableAreaWidth;
-                doc.PageHeight = dlg.PrintableAreaHeight;
+                // Create temporary doc for printing
+                var printDoc = new FlowDocument
+                {
+                    PageHeight = dlg.PrintableAreaHeight,
+                    PageWidth = dlg.PrintableAreaWidth,
+                    PagePadding = new Thickness(36),
+                    ColumnWidth = double.PositiveInfinity,
+                    FontFamily = new FontFamily("Consolas"),
+                    FontSize = 11
+                };
 
-                dlg.PrintDocument(((IDocumentPaginatorSource)doc).DocumentPaginator, "Neraca Lajur");
+                // Render to print doc (true = print mode/white background)
+                RenderContentToDoc(printDoc, _lastRows, _lastD1, _lastD2, true);
+
+                dlg.PrintDocument(((IDocumentPaginatorSource)printDoc).DocumentPaginator, "Neraca Lajur");
             }
         }
 
+        // =================================================================================
+        // RENDERING LOGIC (Mirip Neraca Percobaan Style)
+        // =================================================================================
+        private void RenderContentToDoc(FlowDocument doc, IList<TrialRow> items, DateTime d1, DateTime d2, bool isPrint)
+        {
+            var id = CultureInfo.GetCultureInfo("id-ID");
+
+            // Colors
+            var brushTxt = isPrint ? _brushBlack : _brushText;
+            var brushHead = isPrint ? _brushBlack : _brushHeader;
+            var brushBorder = isPrint ? _brushBlack : new SolidColorBrush(Color.FromRgb(60, 60, 80)); // Grid line color
+            var borderThick = new Thickness(0, 0, 1, 1); // Right & Bottom border
+
+            // 1. Header Text
+            string nama = string.IsNullOrWhiteSpace(CompanyName) ? "Nama PT" : CompanyName;
+
+            Paragraph pHead = new Paragraph { TextAlignment = TextAlignment.Center };
+            pHead.Inlines.Add(new Run(nama + "\n") { FontSize = 16, FontWeight = FontWeights.Bold, Foreground = brushHead });
+            pHead.Inlines.Add(new Run("NERACA LAJUR (WORKSHEET)\n") { FontSize = 14, FontWeight = FontWeights.Bold, Foreground = brushHead });
+            pHead.Inlines.Add(new Run(FormatPeriod(d1, d2)) { FontSize = 12, Foreground = brushTxt });
+            doc.Blocks.Add(pHead);
+
+            // 2. Table Setup
+            var table = new Table { CellSpacing = 0, BorderBrush = brushBorder, BorderThickness = new Thickness(1, 1, 0, 0) };
+            doc.Blocks.Add(table);
+
+            // Columns (No, Name, 6 Data Columns, Type)
+            table.Columns.Add(new TableColumn { Width = new GridLength(80) });  // Kode
+            table.Columns.Add(new TableColumn { Width = new GridLength(180) }); // Nama
+            for (int i = 0; i < 6; i++) table.Columns.Add(new TableColumn { Width = new GridLength(100) }); // Angka
+            table.Columns.Add(new TableColumn { Width = new GridLength(30) });  // Tipe
+
+            var rg = new TableRowGroup();
+            table.RowGroups.Add(rg);
+
+            // 3. Header Row 1 (Grouping)
+            var hGroup = new TableRow { Background = isPrint ? Brushes.LightGray : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#333344")) };
+
+            // Spacer for Kode & Nama
+            hGroup.Cells.Add(new TableCell(new Paragraph(new Run(""))) { ColumnSpan = 2, BorderBrush = brushBorder, BorderThickness = borderThick });
+
+            void AddGrp(string t)
+            {
+                hGroup.Cells.Add(new TableCell(new Paragraph(new Run(t)))
+                {
+                    ColumnSpan = 2,
+                    TextAlignment = TextAlignment.Center,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = brushHead,
+                    BorderBrush = brushBorder,
+                    BorderThickness = borderThick
+                });
+            }
+            AddGrp("BALANCE");
+            AddGrp("LABA RUGI");
+            AddGrp("NERACA");
+
+            // Spacer for Type
+            hGroup.Cells.Add(new TableCell(new Paragraph(new Run(""))) { BorderBrush = brushBorder, BorderThickness = borderThick });
+
+            rg.Rows.Add(hGroup);
+
+            // 4. Header Row 2 (Sub Titles)
+            var hSub = new TableRow { Background = isPrint ? Brushes.LightGray : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#333344")) };
+
+            void AddSub(string t, bool center = false)
+            {
+                hSub.Cells.Add(new TableCell(new Paragraph(new Run(t)))
+                {
+                    Padding = new Thickness(5, 2, 5, 5),
+                    FontWeight = FontWeights.Bold,
+                    Foreground = brushHead,
+                    TextAlignment = center ? TextAlignment.Center : TextAlignment.Left,
+                    BorderBrush = brushBorder,
+                    BorderThickness = borderThick
+                });
+            }
+            void AddDK() { AddSub("Debet", true); AddSub("Kredit", true); }
+
+            AddSub("NOMOR");
+            AddSub("NAMA REKENING");
+            AddDK(); // Balance
+            AddDK(); // LR
+            AddDK(); // Neraca
+            AddSub("T", true);
+            rg.Rows.Add(hSub);
+
+            // 5. Data Rows
+            foreach (var r in items)
+            {
+                bool isBold = r.Name == "TOTAL" || r.Name == "SISA LABA / RUGI";
+
+                var tr = new TableRow();
+                if (isBold && !isPrint) tr.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#222233"));
+
+                void Cell(string s, TextAlignment align, bool bold = false)
+                {
+                    var p = new Paragraph(new Run(s)) { TextAlignment = align };
+                    p.Foreground = brushTxt;
+                    if (bold) { p.FontWeight = FontWeights.Bold; p.Foreground = brushHead; }
+                    if (isPrint && bold) p.Foreground = Brushes.Black;
+
+                    tr.Cells.Add(new TableCell(p)
+                    {
+                        Padding = new Thickness(4, 2, 4, 2),
+                        BorderBrush = brushBorder,
+                        BorderThickness = borderThick
+                    });
+                }
+
+                void Num(decimal? v, bool bold = false)
+                {
+                    string s = v.HasValue && v.Value != 0 ? v.Value.ToString("#,##0.00", id) : "-";
+
+                    var p = new Paragraph(new Run(s)) { TextAlignment = TextAlignment.Right };
+
+                    // Logic warna merah
+                    if (v.HasValue && v.Value < 0) p.Foreground = Brushes.Red; // Atau GlobalNegativeBrush
+                    else p.Foreground = brushTxt;
+
+                    if (bold) { p.FontWeight = FontWeights.Bold; if (v >= 0) p.Foreground = brushHead; }
+                    if (isPrint) p.Foreground = Brushes.Black;
+
+                    tr.Cells.Add(new TableCell(p)
+                    {
+                        Padding = new Thickness(4, 2, 4, 2),
+                        BorderBrush = brushBorder,
+                        BorderThickness = borderThick
+                    });
+                }
+
+                Cell(r.Code3, TextAlignment.Left, isBold);
+                Cell(r.Name, TextAlignment.Left, isBold);
+
+                Num(r.BalD, isBold); Num(r.BalK, isBold);
+                Num(r.LRD, isBold); Num(r.LRK, isBold);
+                Num(r.NerD, isBold); Num(r.NerK, isBold);
+
+                Cell(r.TypeLetter, TextAlignment.Center, isBold);
+
+                rg.Rows.Add(tr);
+            }
+
+            // Footer Timestamp
+            doc.Blocks.Add(new Paragraph(new Run($"Dicetak: {DateTime.Now:dd-MM-yyyy HH:mm}"))
+            { FontSize = 10, Foreground = Brushes.Gray, Margin = new Thickness(0, 12, 0, 0) });
+        }
+
+        // =================================================================================
+        // DATA LOGIC (UNCHANGED)
+        // =================================================================================
         private (DateTime from, DateTime to) MakeRange(int year, int month, bool ytd)
         {
             var d1 = ytd ? new DateTime(year, 1, 1) : new DateTime(year, month, 1);
@@ -107,13 +281,12 @@ namespace AeroGL
             return $"{d1.ToString("MMMM yyyy", id)} – {d2.ToString("MMMM yyyy", id)}";
         }
 
-        // ==== model untuk grid ====
         public sealed class TrialRow
         {
             public string Code3 { get; set; }
             public string Name { get; set; }
-            public int Grp { get; set; }      // 1..5
-            public int Type { get; set; }     // 0=Debit, 1=Kredit
+            public int Grp { get; set; }
+            public int Type { get; set; }
             public string TypeLetter => Type == 0 ? "D" : "K";
 
             public decimal? BalD { get; set; }
@@ -124,14 +297,13 @@ namespace AeroGL
             public decimal? NerK { get; set; }
         }
 
-        // hasil baca Coa + CoaBalance
         private sealed class BalRow
         {
             public string Code3 { get; set; }
             public string Name { get; set; }
             public int Grp { get; set; }
             public int Type { get; set; }
-            public double Saldo { get; set; }   // gunakan double agar aman dari mapping REAL
+            public double Saldo { get; set; }
             public double Debet { get; set; }
             public double Kredit { get; set; }
         }
@@ -157,25 +329,21 @@ ORDER BY c.Code3;";
 
             string sqlYtd = $@"
 SELECT  c.Code3, c.Name, c.Grp, c.Type,
-
         COALESCE((
             SELECT {norm("cb1.Saldo")}
             FROM CoaBalance cb1
             WHERE cb1.Code3=c.Code3 AND cb1.Year=@y AND cb1.Month=1
         ), 0.0) AS Saldo,
-
         COALESCE((
             SELECT 1.0 * SUM({norm("cb2.Debet")})
             FROM CoaBalance cb2
             WHERE cb2.Code3=c.Code3 AND cb2.Year=@y AND cb2.Month BETWEEN 1 AND @m
         ), 0.0) AS Debet,
-
         COALESCE((
             SELECT 1.0 * SUM({norm("cb3.Kredit")})
             FROM CoaBalance cb3
             WHERE cb3.Code3=c.Code3 AND cb3.Year=@y AND cb3.Month BETWEEN 1 AND @m
         ), 0.0) AS Kredit
-
 FROM Coa c
 WHERE c.Code3 LIKE '%.%.%'
 ORDER BY c.Code3;";
@@ -188,7 +356,6 @@ ORDER BY c.Code3;";
 
             var list = new List<TrialRow>(rows.Count + 6);
 
-            // Totals per kolom (tanpa SLR & TOTAL dulu)
             decimal tBalD = 0, tBalK = 0,
                     tLRD = 0, tLRK = 0,
                     tNerD = 0, tNerK = 0;
@@ -199,13 +366,11 @@ ORDER BY c.Code3;";
                 decimal debet = (decimal)r.Debet;
                 decimal kredit = (decimal)r.Kredit;
 
-                // closing berdasar tipe normal
                 decimal closing = (r.Type == 0) ? (saldo + debet - kredit)
                                                 : (saldo + kredit - debet);
 
                 var t = new TrialRow { Code3 = r.Code3, Name = r.Name, Grp = r.Grp, Type = r.Type };
 
-                // Kolom Balance → posisi sesuai tanda & type
                 if (r.Type == 0)
                 {
                     if (closing >= 0) t.BalD = closing; else t.BalK = Math.Abs(closing);
@@ -215,11 +380,9 @@ ORDER BY c.Code3;";
                     if (closing >= 0) t.BalK = closing; else t.BalD = Math.Abs(closing);
                 }
 
-                // Mapping ke R/L atau Neraca (berdasar Group)
                 if (r.Grp == 4 || r.Grp == 5) { t.LRD = t.BalD; t.LRK = t.BalK; }
                 else { t.NerD = t.BalD; t.NerK = t.BalK; }
 
-                // akumulasi total per kolom
                 tBalD += t.BalD ?? 0; tBalK += t.BalK ?? 0;
                 tLRD += t.LRD ?? 0; tLRK += t.LRK ?? 0;
                 tNerD += t.NerD ?? 0; tNerK += t.NerK ?? 0;
@@ -227,41 +390,25 @@ ORDER BY c.Code3;";
                 list.Add(t);
             }
 
-            // ========= SISA LABA / RUGI (per kolom) =========
-            // Aturan sesuai request lo:
-            // diff = SUM(Debet) - SUM(Kredit); 
-            // jika diff >= 0 → taruh di DEBET, else → taruh di KREDIT.
             var slr = new TrialRow { Name = "SISA LABA / RUGI" };
-
-            // BALANCE: tidak dihitung SISA
             slr.BalD = null;
             slr.BalK = null;
 
-            // R/L
             decimal diffLR = tLRD - tLRK;
-            if (diffLR < 0) slr.LRD = Math.Abs(diffLR);   // debet kurang
-            else if (diffLR > 0) slr.LRK = diffLR;             // kredit kurang
-                                                               // kalau 0, dua-duanya null
+            if (diffLR < 0) slr.LRD = Math.Abs(diffLR);
+            else if (diffLR > 0) slr.LRK = diffLR;
 
-            // NERACA
             decimal diffNer = tNerD - tNerK;
-            if (diffNer < 0) slr.NerD = Math.Abs(diffNer); // debet kurang
-            else if (diffNer > 0) slr.NerK = diffNer;           // kredit kurang
+            if (diffNer < 0) slr.NerD = Math.Abs(diffNer);
+            else if (diffNer > 0) slr.NerK = diffNer;
 
             list.Add(slr);
 
-            // ========= TOTAL (jumlah per kolom) =========
             var total = new TrialRow { Name = "TOTAL" };
-
-            // Balance: total akun (tanpa SISA)
             total.BalD = tBalD;
             total.BalK = tBalK;
-
-            // R/L: total akun + SISA R/L
             total.LRD = tLRD + (slr.LRD ?? 0);
             total.LRK = tLRK + (slr.LRK ?? 0);
-
-            // Neraca: total akun + SISA Neraca
             total.NerD = tNerD + (slr.NerD ?? 0);
             total.NerK = tNerK + (slr.NerK ?? 0);
 
@@ -269,86 +416,5 @@ ORDER BY c.Code3;";
 
             return list;
         }
-
-
-        // ==== printer ====
-        private FlowDocument BuildFlowDocument(IList<TrialRow> items, DateTime d1, DateTime d2, double availableWidth, double pagePadding)
-        {
-            var id = CultureInfo.GetCultureInfo("id-ID");
-
-            var doc = new FlowDocument
-            {
-                FontFamily = new FontFamily("Consolas"),
-                FontSize = 12,
-                PagePadding = new Thickness(pagePadding),
-                ColumnWidth = double.PositiveInfinity
-            };
-
-            string nama = string.IsNullOrWhiteSpace(CompanyName) ? "Nama PT" : CompanyName;
-            doc.Blocks.Add(new Paragraph(new Run(nama)) { FontSize = 16, FontWeight = FontWeights.Bold, TextAlignment = TextAlignment.Center, Margin = new Thickness(0) });
-            doc.Blocks.Add(new Paragraph(new Run("LAPORAN NERACA LAJUR")) { FontSize = 14, FontWeight = FontWeights.Bold, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 2) });
-            doc.Blocks.Add(new Paragraph(new Run(FormatPeriod(d1, d2))) { FontSize = 12, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 12) });
-
-            var table = new Table { CellSpacing = 0 }; doc.Blocks.Add(table);
-
-            double wNo = 130, wNm = Math.Max(240, availableWidth - (130 * 6 + 40 + 12 * 9));
-            double w = 130, wT = 40;
-
-            table.Columns.Add(new TableColumn { Width = new GridLength(wNo) });
-            table.Columns.Add(new TableColumn { Width = new GridLength(wNm) });
-            for (int i = 0; i < 6; i++) table.Columns.Add(new TableColumn { Width = new GridLength(w) });
-            table.Columns.Add(new TableColumn { Width = new GridLength(wT) });
-
-            var rg = new TableRowGroup(); table.RowGroups.Add(rg);
-
-            var head = new TableRow(); rg.Rows.Add(head);
-            void H(string t, bool first = false)
-            {
-                head.Cells.Add(new TableCell(new Paragraph(new Run(t)) { Margin = new Thickness(0) })
-                {
-                    Padding = new Thickness(6, 3, 6, 3),
-                    BorderBrush = Brushes.Black,
-                    BorderThickness = new Thickness(first ? 1 : 0, 0, 1, 1.5),
-                    FontWeight = FontWeights.Bold
-                });
-            }
-            H("NOMOR", true); H("NAMA REKENING"); H("BALANCE • DEBET"); H("BALANCE • KREDIT");
-            H("R/L • DEBET"); H("R/L • KREDIT"); H("NERACA • DEBET"); H("NERACA • KREDIT"); H("T");
-
-            TableCell C(string s, TextAlignment a = TextAlignment.Left, bool first = false, bool bold = false)
-                => new TableCell(new Paragraph(new Run(s)) { Margin = new Thickness(0), TextAlignment = a })
-                {
-                    Padding = new Thickness(6, 2, 6, 2),
-                    BorderBrush = Brushes.Black,
-                    BorderThickness = new Thickness(first ? 1 : 0, 0, 1, 1),
-                    FontWeight = bold ? FontWeights.Bold : FontWeights.Normal
-                };
-
-            string F(decimal? v) => v.HasValue ? "Rp " + v.Value.ToString("N2", id) : "";
-
-            foreach (var r in items)
-            {
-                bool isSLR = string.Equals(r.Name, "SISA LABA / RUGI", StringComparison.OrdinalIgnoreCase);
-                bool isTOTAL = string.Equals(r.Name, "TOTAL", StringComparison.OrdinalIgnoreCase);
-                bool bold = isSLR || isTOTAL;
-
-                var tr = new TableRow(); rg.Rows.Add(tr);
-                tr.Cells.Add(C(r.Code3, TextAlignment.Left, true, bold));
-                tr.Cells.Add(C(r.Name, TextAlignment.Left, false, bold));
-                tr.Cells.Add(C(F(r.BalD), TextAlignment.Right, false, bold));
-                tr.Cells.Add(C(F(r.BalK), TextAlignment.Right, false, bold));
-                tr.Cells.Add(C(F(r.LRD), TextAlignment.Right, false, bold));
-                tr.Cells.Add(C(F(r.LRK), TextAlignment.Right, false, bold));
-                tr.Cells.Add(C(F(r.NerD), TextAlignment.Right, false, bold));
-                tr.Cells.Add(C(F(r.NerK), TextAlignment.Right, false, bold));
-                tr.Cells.Add(C(r.TypeLetter, TextAlignment.Center, false, bold));
-            }
-
-            doc.Blocks.Add(new Paragraph(new Run($"Dicetak: {DateTime.Now:dd-MM-yyyy HH:mm}"))
-            { FontSize = 10, Foreground = Brushes.Gray, Margin = new Thickness(0, 12, 0, 0) });
-
-            return doc;
-        }
-
     }
 }

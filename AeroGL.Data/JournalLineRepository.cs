@@ -126,5 +126,44 @@ WHERE rowid=@Id;";
                     .AsList();
             }
         }
+
+        public async Task<List<TrialBalanceMutation>> GetTrialBalanceSummary(System.DateTime start, System.DateTime end)
+        {
+            using (var cn = Db.Open())
+            {
+                string s = start.ToString("yyyy-MM-dd");
+                string e = end.ToString("yyyy-MM-dd");
+
+                string sql = @"
+                    SELECT 
+                        l.Code2 AS Code,
+                        h.Type AS JournalType,
+                        l.Side,
+                        SUM(l.Amount) AS TotalAmount
+                    FROM JournalLine l
+                    JOIN JournalHeader h ON l.NoTran = h.NoTran
+                    WHERE h.Tanggal BETWEEN @S AND @E
+                    GROUP BY l.Code2, h.Type, l.Side";
+
+                // 1. Ambil sebagai dynamic dulu (biar terima Double apa adanya)
+                var rows = await cn.QueryAsync<dynamic>(sql, new { S = s, E = e });
+
+                // 2. Mapping manual ke class kita (Convert Double -> Decimal)
+                var result = new List<TrialBalanceMutation>();
+                foreach (var r in rows)
+                {
+                    result.Add(new TrialBalanceMutation
+                    {
+                        Code = r.Code,
+                        JournalType = r.JournalType,
+                        Side = r.Side,
+                        // INI OBATNYA: Pakai Convert.ToDecimal()
+                        TotalAmount = System.Convert.ToDecimal(r.TotalAmount)
+                    });
+                }
+
+                return result;
+            }
+        }
     }
 }

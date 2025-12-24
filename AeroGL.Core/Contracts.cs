@@ -100,10 +100,20 @@ namespace AeroGL.Core
         Task<decimal> GetMutationSum(string code2, System.DateTime start, System.DateTime end);
         Task<List<JournalLineRecord>> GetLedgerModeM(string code2, System.DateTime start, System.DateTime end);
         Task<List<JournalLineRecord>> GetLedgerModeN(string code2, System.DateTime start, System.DateTime end);
+
+        Task<List<TrialBalanceMutation>> GetTrialBalanceSummary(System.DateTime start, System.DateTime end);
     }
 
     public interface IAliasRepository
     {
         Task<string> ResolveCode3(string code2); // alias or code2+".001"
+    }
+
+    public class TrialBalanceMutation
+    {
+        public string Code { get; set; }
+        public string JournalType { get; set; } // Diisi 'J' atau 'M' dari Header
+        public string Side { get; set; }        // 'D' atau 'K'
+        public decimal TotalAmount { get; set; }
     }
 }
