@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using AeroGL.Data;
+using System.Windows.Input;
+using System.Printing;
 using AeroGL.Core; // Sesuaikan jika perlu
 
 namespace AeroGL
@@ -39,6 +41,29 @@ namespace AeroGL
             InitializeReportSections();
 
             LoadFilters();
+
+            PreviewKeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Escape)
+                {
+                    Close();
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Enter)
+                {
+                    // Cek agar tidak konflik jika user sedang memilih Combobox
+                    if (!btnShow.IsKeyboardFocused)
+                    {
+                        BtnShow_Click(s, e);
+                        e.Handled = true;
+                    }
+                }
+                else if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.None)
+                {
+                    BtnPrint_Click(s, e);
+                    e.Handled = true;
+                }
+            };
         }
 
         // --- FUNGSI BARU UNTUK BUILD SECTIONS SECARA DINAMIS ---
@@ -138,7 +163,61 @@ namespace AeroGL
             }
         }
 
-        // --- CORE LOGIC (ASYNC) ---
+        private void BtnClose_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void BtnPrint_Click(object sender, RoutedEventArgs e)
+        {
+            // Validasi sederhana: Cek apakah ada blok di dokumen selain judul default
+            if (reportDoc.Blocks.Count <= 1)
+            {
+                MessageBox.Show("Belum ada data untuk dicetak. Silakan tampilkan data terlebih dahulu.",
+                                "Print Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            PrintDialog dlg = new PrintDialog();
+            if (dlg.ShowDialog() == true)
+            {
+                // SIMPAN SETTING ASLI (PENTING!)
+                // Kita harus mengubah ukuran dokumen sementara agar pas di kertas printer,
+                // lalu mengembalikannya agar tampilan di layar tidak rusak.
+                var originalPageWidth = reportDoc.PageWidth;
+                var originalPageHeight = reportDoc.PageHeight;
+                var originalColumnWidth = reportDoc.ColumnWidth;
+                var originalPadding = reportDoc.PagePadding;
+
+                try
+                {
+                    // Atur ukuran kertas sesuai pilihan printer
+                    reportDoc.PageWidth = dlg.PrintableAreaWidth;
+                    reportDoc.PageHeight = dlg.PrintableAreaHeight;
+
+                    // ColumnWidth harus infinity biar ga jadi koran kecil saat diprint
+                    reportDoc.ColumnWidth = double.PositiveInfinity;
+
+                    // Padding cetak
+                    reportDoc.PagePadding = new Thickness(40);
+
+                    IDocumentPaginatorSource idp = reportDoc;
+                    dlg.PrintDocument(idp.DocumentPaginator, "Laporan Perincian");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Gagal mencetak: {ex.Message}", "Error Print", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    // KEMBALIKAN SETTING ASLI
+                    reportDoc.PageWidth = originalPageWidth;
+                    reportDoc.PageHeight = originalPageHeight;
+                    reportDoc.ColumnWidth = originalColumnWidth;
+                    reportDoc.PagePadding = originalPadding;
+                }
+            }
+        }
         // --- CORE LOGIC (FINAL FIX: FORMULA BY ACCOUNT TYPE) ---
         private async Task GenerateReport(int year, int month, bool isYtd)
         {

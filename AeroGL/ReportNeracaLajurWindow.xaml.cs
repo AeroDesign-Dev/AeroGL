@@ -133,7 +133,7 @@ namespace AeroGL
 
             Paragraph pHead = new Paragraph { TextAlignment = TextAlignment.Center };
             pHead.Inlines.Add(new Run(nama + "\n") { FontSize = 16, FontWeight = FontWeights.Bold, Foreground = brushHead });
-            pHead.Inlines.Add(new Run("NERACA LAJUR (WORKSHEET)\n") { FontSize = 14, FontWeight = FontWeights.Bold, Foreground = brushHead });
+            pHead.Inlines.Add(new Run("NERACA & RUGI/LABA\n") { FontSize = 14, FontWeight = FontWeights.Bold, Foreground = brushHead });
             pHead.Inlines.Add(new Run(FormatPeriod(d1, d2)) { FontSize = 12, Foreground = brushTxt });
             doc.Blocks.Add(pHead);
 
@@ -368,6 +368,14 @@ ORDER BY c.Code3;";
 
                 decimal closing = (r.Type == 0) ? (saldo + debet - kredit)
                                                 : (saldo + kredit - debet);
+
+                // ============================================================
+                // TAMBAHAN: FILTER BARIS KOSONG
+                // Jika Saldo Awal, Mutasi Debet, Mutasi Kredit, dan Akhir = 0
+                // Maka Skip (jangan dimasukkan ke list)
+                // ============================================================
+                if (saldo == 0 && debet == 0 && kredit == 0 && closing == 0) 
+                    continue; 
 
                 var t = new TrialRow { Code3 = r.Code3, Name = r.Name, Grp = r.Grp, Type = r.Type };
 

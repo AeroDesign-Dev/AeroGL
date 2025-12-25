@@ -9,9 +9,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Data; // PENTING: Untuk IValueConverter
 
 namespace AeroGL
 {
+    // ==========================================
+    // CLASS WINDOW UTAMA
+    // ==========================================
     public partial class ReportNeracaWindow : Window
     {
         public string CompanyName { get; set; } = "Nama PT";
@@ -23,6 +27,7 @@ namespace AeroGL
             TxtYear.Text = DateTime.Today.Year.ToString();
             CboMonth.SelectedIndex = DateTime.Today.Month - 1;
 
+            // Shortcut Keys
             PreviewKeyDown += (s, e) =>
             {
                 if (e.Key == Key.Escape) { Close(); e.Handled = true; }
@@ -60,7 +65,11 @@ namespace AeroGL
             // Aktiva Tetap
             public decimal AktivaTetap { get; set; }
             public decimal AkumulasiPenyusutan { get; set; }
-            public decimal AkumulasiPenyusutanNeg => -AkumulasiPenyusutan; // tampil minus (kurung)
+
+            // NOTE: Di viewmodel ini kita simpan angka aslinya (negatif). 
+            // Converter di XAML yang akan mengurus warnanya.
+            public decimal AkumulasiPenyusutanNeg => -AkumulasiPenyusutan;
+
             public decimal JumlahAktivaTetap => AktivaTetap - AkumulasiPenyusutan;
 
             public decimal TotalAktiva => JumlahAktivaLancar + JumlahAktivaTetap;
@@ -108,7 +117,7 @@ namespace AeroGL
         private static decimal SumByFirst(BalRow[] rows, string firstSeg)
         {
             return rows.Where(r => FirstSeg(r.Code3) == firstSeg)
-                       .Sum(Closing);
+                        .Sum(Closing);
         }
 
         // ===== Core builder (BULAN SAJA) =====
@@ -133,7 +142,7 @@ WHERE c.Code3 LIKE '%.%.%'";
             using (var cn = Db.Open())
             {
                 raw = (await cn.QueryAsync<BalRow>(sqlMonth, new { y = year, m = month }))
-                       .ToArray();
+                        .ToArray();
             }
 
             // ===== Hitung per kelompok (semua pakai SumByFirst: xxx.*.*) =====
@@ -235,8 +244,7 @@ WHERE c.Code3 LIKE '%.%.%'";
             {
                 st = ApplyPrintTheme(Paper, dlg.PrintableAreaWidth);
 
-                // Optional: kalau mau benar-benar aman dari kepotong bawah,
-                // tambah scale-to-fit height juga (kalau tinggi visual > area cetak):
+                // Optional: scale-to-fit
                 Paper.UpdateLayout();
                 var original = Paper.LayoutTransform;
 
@@ -246,7 +254,6 @@ WHERE c.Code3 LIKE '%.%.%'";
                 double w = Paper.ActualWidth > 0 ? Paper.ActualWidth : Paper.DesiredSize.Width;
                 double h = Paper.ActualHeight > 0 ? Paper.ActualHeight : Paper.DesiredSize.Height;
 
-                // skala hanya jika perlu (tinggi melebihi area)
                 double scale = Math.Min(1.0, printableH / h);
                 Paper.LayoutTransform = new ScaleTransform(scale, scale);
                 Paper.Measure(new Size(printableW, printableH));
@@ -338,5 +345,48 @@ WHERE c.Code3 LIKE '%.%.%'";
             foreach (var (tb, fg) in st.Tbs) if (tb != null) tb.Foreground = fg;
             foreach (var (bd, bb) in st.Bds) if (bd != null) bd.BorderBrush = bb;
         }
+    } // <--- AKHIR DARI CLASS ReportNeracaWindow
+
+    // ==========================================
+    // CLASS CONVERTER (DILUAR WINDOW, DI DALAM NAMESPACE)
+    // ==========================================
+
+    public class AmountColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            decimal val = 0;
+            if (value is decimal d) val = d;
+            else if (value is double db) val = (decimal)db;
+            else if (value is int i) val = i;
+
+            if (val < 0)
+            {
+                // Warna Merah untuk Negatif (sama dengan Perincian)
+                return Application.Current.Resources["GlobalNegativeBrush"] ?? Brushes.Red;
+            }
+
+            // Warna Hijau Muda (#BFFFD0) untuk Positif (sama dengan Style Neraca sebelumnya)
+            return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#BFFFD0"));
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
     }
+
+    public class AmountStringConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is decimal d)
+            {
+                if (d == 0) return "-";
+                // Format N2 = pakai titik ribuan, koma desimal, minus di depan (bukan kurung)
+                return d.ToString("N2", CultureInfo.GetCultureInfo("id-ID"));
+            }
+            return "0,00";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+    }
+
 }

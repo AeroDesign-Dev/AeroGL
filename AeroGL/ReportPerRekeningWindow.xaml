@@ -176,8 +176,10 @@
             <TextBlock x:Name="TxtInfo" Grid.Column="0" Foreground="#AAA" VerticalAlignment="Center" Text="Siap."/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="BtnShow" Content="Tampilkan" Width="100" Margin="0,0,10,0" Click="BtnShow_Click" Height="30" Background="#444466" Foreground="White"/>
-                <Button x:Name="BtnPrint" Content="Print" Width="80" Margin="0,0,10,0" Click="BtnPrint_Click" Height="30" Background="#2D8F6F" Foreground="White"/>
+                <Button x:Name="BtnShow" Content="Tampilkan (Enter)" Click="BtnShow_Click" 
+                        Margin="0,0,8,0" Height="30" Padding="10,0" 
+                        Background="#444466" Foreground="White" BorderBrush="#666"/>
+                <Button x:Name="BtnPrint" Content="Print (P)" Width="80" Margin="0,0,10,0" Click="BtnPrint_Click" Height="30" Background="#2D8F6F" Foreground="White"/>
                 <Button Content="Tutup (Esc)" Click="BtnClose_Click" Height="30" Padding="10,0" Background="#FF6060" Foreground="White"/>
             </StackPanel>
         </Grid>

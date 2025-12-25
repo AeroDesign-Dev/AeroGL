@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
-using System.Windows.Input;
+using System.Windows.Input; // WAJIB ADA untuk Shortcut Key
 using System.Windows.Media;
 
 namespace AeroGL
@@ -27,6 +27,33 @@ namespace AeroGL
             var now = DateTime.Today;
             DpFrom.SelectedDate = new DateTime(now.Year, now.Month, 1);
             DpTo.SelectedDate = now;
+
+            // ========================================================
+            // SHORTCUT KEYS
+            // ========================================================
+            PreviewKeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Escape)
+                {
+                    Close();
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Enter)
+                {
+                    // Jangan trigger kalau user sedang ngetik di TextBox/ComboBox
+                    // Cek apakah fokus BUKAN di tombol Show
+                    if (!BtnShow.IsKeyboardFocused)
+                    {
+                        BtnShow_Click(s, e);
+                        e.Handled = true;
+                    }
+                }
+                else if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.None)
+                {
+                    BtnPrint_Click(s, e);
+                    e.Handled = true;
+                }
+            };
         }
 
         // ==================== LOGIC UTAMA ====================
@@ -101,19 +128,6 @@ namespace AeroGL
                     //if (trans.Count == 0) continue;
 
                     // --- D. Bikin Header Akun di Grid ---
-                    /*reportRows.Add(new LedgerRow
-                    {
-                        IsHeader = true,
-                        Keterangan = $"REKENING : {akun.Code3} - {akun.Name}"
-                    });
-
-                    // Baris Saldo Awal
-                    reportRows.Add(new LedgerRow
-                    {
-                        Keterangan = "SALDO AWAL",
-                        Saldo = saldoAwalFinal,
-                        IsSaldoRow = true
-                    });*/
                     reportRows.Add(new LedgerRow
                     {
                         IsHeader = true,

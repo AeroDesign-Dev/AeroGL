@@ -51,13 +51,17 @@
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
 
-                <Button x:Name="btnShow" Content="Tampilkan" Click="BtnShow_Click" 
-                        Width="100" Margin="0,0,10,0" Height="30" 
-                        Background="#444466" Foreground="White" BorderThickness="0"/>
+                <Button x:Name="btnShow" Content="Tampilkan (Enter)" Click="BtnShow_Click" 
+                        Margin="0,0,8,0" Height="30" Padding="10,0" 
+                        Background="#444466" Foreground="White" BorderBrush="#666"/>
 
-                <Button x:Name="btnPrint" Content="Print" Click="BtnPrint_Click" 
-                        Width="100" Height="30" 
-                        Background="#2D8F6F" Foreground="White" BorderThickness="0"/>
+                <Button x:Name="btnPrint" Content="Print (P)" Click="BtnPrint_Click" 
+                        Margin="0,0,8,0" Height="30" Padding="10,0" 
+                        Background="#2D8F6F" Foreground="White" BorderBrush="#2D8F6F"/>
+
+                <Button Content="Tutup (Esc)" Click="BtnClose_Click" 
+                        Height="30" Padding="10,0" 
+                        Background="#FF6060" Foreground="White" BorderBrush="#FF6060"/>
             </StackPanel>
         </Grid>
 

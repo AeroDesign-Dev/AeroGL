@@ -7,6 +7,7 @@ using System.Printing;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data; // WAJIB ADA
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -51,7 +52,7 @@ namespace AeroGL
             public decimal PenjualanBersih => Penjualan;
 
             public decimal Hpp { get; set; }                 // nilai “biaya” sebagai angka positif
-            public decimal HppNeg => -Hpp;                   // untuk ditampilkan (Rp …) dalam kurung
+            public decimal HppNeg => -Hpp;                   // untuk ditampilkan negatif
 
             public decimal LabaKotor => Penjualan - Hpp;
 
@@ -220,20 +221,17 @@ WHERE c.Code3 LIKE '%.%.%'";
 
 
         // ====== Helpers untuk print (tematik hitam-putih + padding) ======
+        private sealed class PrintThemeState
+        {
+            public Brush PaperBg;
+            public double PaperWidth;
+            public Thickness PaperMargin;
 
+            public (TextBlock tb, Brush fg)[] Tbs;
+            public (Border bd, Brush bb)[] Bds;
+        }
 
-// ====== Helpers untuk print (tematik hitam-putih + padding) ======
-private sealed class PrintThemeState
-    {
-        public Brush PaperBg;
-        public double PaperWidth;
-        public Thickness PaperMargin;
-
-        public (TextBlock tb, Brush fg)[] Tbs;
-        public (Border bd, Brush bb)[] Bds;
-}
-
-private static void VisitVisuals(DependencyObject root, Action<DependencyObject> act)
+        private static void VisitVisuals(DependencyObject root, Action<DependencyObject> act)
         {
             if (root == null) return;
             act(root);
@@ -295,6 +293,5 @@ private static void VisitVisuals(DependencyObject root, Action<DependencyObject>
             foreach (var (bd, bb) in st.Bds) if (bd != null) bd.BorderBrush = bb;
         }
 
-
-    }
-}
+    } // <--- AKHIR CLASS ReportRugiLabaWindow
+} // <--- AKHIR NAMESPACE

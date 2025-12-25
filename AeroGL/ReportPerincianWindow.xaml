@@ -33,10 +33,6 @@
                     <ComboBoxItem Content="B - Bulanan"/>
                     <ComboBoxItem Content="T - Tahunan (YTD)"/>
                 </ComboBox>
-
-                <Button x:Name="btnShow" Content="Tampilkan" Click="BtnShow_Click" 
-                        Width="120" Margin="20,0,0,0" Height="26" 
-                        Background="#444466" Foreground="White" BorderBrush="#666"/>
             </WrapPanel>
         </Border>
 
@@ -46,12 +42,33 @@
                               Background="#15152A" Foreground="#EAEAEA" 
                               FontFamily="Consolas" FontSize="13" ColumnWidth="1000">
                     <Paragraph TextAlignment="Center" Margin="0,20,0,0" Foreground="#888">
-                        Silakan pilih periode dan klik tombol Tampilkan.
+                        Silakan pilih periode dan klik tombol Tampilkan (Enter).
                     </Paragraph>
                 </FlowDocument>
             </FlowDocumentScrollViewer>
         </Border>
 
-        <TextBlock Grid.Row="2" x:Name="txtStatus" Foreground="#AAA" Margin="4,8,0,0" Text="Siap."/>
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="txtStatus" Grid.Column="0" Foreground="#AAA" VerticalAlignment="Center" Text="Siap."/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="btnShow" Content="Tampilkan (Enter)" Click="BtnShow_Click" 
+                        Margin="0,0,8,0" Height="30" Padding="10,0" 
+                        Background="#444466" Foreground="White" BorderBrush="#666"/>
+
+                <Button Content="Print (P)" Click="BtnPrint_Click" 
+                        Margin="0,0,8,0" Height="30" Padding="10,0" 
+                        Background="#2D8F6F" Foreground="White" BorderBrush="#2D8F6F"/>
+
+                <Button Content="Tutup (Esc)" Click="BtnClose_Click" 
+                        Height="30" Padding="10,0" 
+                        Background="#FF6060" Foreground="White" BorderBrush="#FF6060"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>
