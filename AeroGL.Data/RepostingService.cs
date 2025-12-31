@@ -20,65 +20,61 @@ namespace AeroGL.Data
                 try
                 {
                     // ---------------------------------------------------------
-                    // 1. RESET TOTAL (DEBET, KREDIT, DAN SALDO)
+                    // 1. RESET MUTASI TAHUN TERKAIT JADI 0
                     // ---------------------------------------------------------
-                    OnProgress?.Invoke("Membersihkan semua sampah data...");
-
-                    // RESET MUTASI: Debet & Kredit jadi 0 untuk semua bulan di tahun itu
-                    await cn.ExecuteAsync("UPDATE CoaBalance SET Debet = 0, Kredit = 0 WHERE Year = @y", new { y = year }, trans);
-
-                    // RESET SALDO: Hapus semua angka "jiplakan" di kolom Saldo untuk bulan 2-12
-                    // Bulan 1 (Januari) TIDAK DISENTUH karena itu saldo awal tahun/migrasi
-                    await cn.ExecuteAsync("UPDATE CoaBalance SET Saldo = 0 WHERE Year = @y AND Month > 1", new { y = year }, trans);
+                    OnProgress?.Invoke("Resetting Debet/Kredit...");
+                    await cn.ExecuteAsync(@"
+                UPDATE CoaBalance 
+                SET Debet = 0, Kredit = 0 
+                WHERE Year = @y", new { y = year }, trans);
 
                     // ---------------------------------------------------------
-                    // 2. SUM JURNAL (MURNI AGREGASI)
+                    // 2. HITUNG TOTAL JURNAL (AGREGASI)
                     // ---------------------------------------------------------
-                    OnProgress?.Invoke("Menghitung ulang mutasi jurnal...");
+                    OnProgress?.Invoke("Summing Journals...");
 
+                    // PERINGATAN: Gue benerin GROUP BY lo. 
+                    // Kalau lo Group By Code2 tapi select Code3, angkanya ketimpa kalau 1 Code3 punya banyak Code2.
                     var journalSummary = await cn.QueryAsync<dynamic>(@"
                 SELECT 
-                    (SUBSTR(JL.Code2, 1, 7) || '.001') AS Code3, 
+                    (JL.Code2 || '.001') AS Code3, 
                     CAST(strftime('%m', JH.Tanggal) AS INTEGER) AS Month,
                     JL.Side,
                     SUM(JL.Amount) AS Total
                 FROM JournalLine JL
                 JOIN JournalHeader JH ON JL.NoTran = JH.NoTran
                 WHERE strftime('%Y', JH.Tanggal) = CAST(@y AS TEXT)
-                GROUP BY 1, 2, 3", // Grouping berdasar Code3, Month, Side
+                GROUP BY 1, 2, 3", // Grouping berdasar Code3, Month, dan Side
                         new { y = year }, trans);
 
                     // ---------------------------------------------------------
-                    // 3. UPDATE KE COA BALANCE
+                    // 3. MASUKKIN HASIL SUM KE COA BALANCE
                     // ---------------------------------------------------------
+                    OnProgress?.Invoke("Updating CoaBalance...");
+
                     foreach (var item in journalSummary)
                     {
                         string col = (item.Side == "D") ? "Debet" : "Kredit";
+                        string sqlUpdate = $"UPDATE CoaBalance SET {col} = @val WHERE Code3=@c AND Year=@y AND Month=@m";
 
-                        // Update mutasi hasil SUM tadi
-                        int affected = await cn.ExecuteAsync(
-                            $"UPDATE CoaBalance SET {col} = @val WHERE Code3=@c AND Year=@y AND Month=@m",
+                        int affected = await cn.ExecuteAsync(sqlUpdate,
                             new { val = item.Total, c = item.Code3, y = year, m = item.Month }, trans);
 
-                        // Kalau barisnya belum ada di DB (misal akun baru dipakai di bulan itu)
+                        // Kalau barisnya belum ada, buat baru dengan mutasi hasil sum tadi
                         if (affected == 0)
                         {
+                            string insertCol = (item.Side == "D") ? item.Total.ToString() : "0";
+                            string insertColK = (item.Side == "K") ? item.Total.ToString() : "0";
+
                             await cn.ExecuteAsync(@"
                         INSERT INTO CoaBalance (Code3, Year, Month, Saldo, Debet, Kredit)
                         VALUES (@c, @y, @m, 0, @d, @k)",
-                                new
-                                {
-                                    c = item.Code3,
-                                    y = year,
-                                    m = item.Month,
-                                    d = (item.Side == "D" ? item.Total : 0),
-                                    k = (item.Side == "K" ? item.Total : 0)
-                                }, trans);
+                                new { c = item.Code3, y = year, m = item.Month, d = item.Total * (item.Side == "D" ? 1 : 0), k = item.Total * (item.Side == "K" ? 1 : 0) }, trans);
                         }
                     }
 
                     trans.Commit();
-                    OnProgress?.Invoke("Reposting Berhasil (Murni Agregasi)!");
+                    OnProgress?.Invoke("Reposting Selesai!");
                 }
                 catch (Exception ex)
                 {

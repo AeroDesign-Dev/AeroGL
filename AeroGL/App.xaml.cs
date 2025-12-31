@@ -18,7 +18,7 @@ namespace AeroGL
                 AppDomain.CurrentDomain.BaseDirectory);
 
             // Buat schema + trigger jika belum ada
-            //AeroGL.Data.Schema.Init();
+            AeroGL.Data.Schema.Init();
             AeroGL.AccountConfig.Reload();
             //await AeroGL.Data.DbfImporter.RunOnce(@"D:\GLData"); // ganti path
 
