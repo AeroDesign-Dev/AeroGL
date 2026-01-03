@@ -5,6 +5,16 @@ using System.Threading.Tasks;
 
 namespace AeroGL.Core
 {
+    public sealed class Company
+    {
+        public System.Guid Id { get; set; }
+        public string Name { get; set; }
+        public string DbPath { get; set; } // Path lengkap ke file .db perusahaan
+        public System.DateTime CreatedDate { get; set; }
+        public System.DateTime? LastAccessed { get; set; }
+        public bool IsActive { get; set; } // Menandai mana yang terakhir dibuka
+    }
+
     public enum AccountType { Debit = 0, Kredit = 1 }
     public enum AccountGroup { Aktiva = 1, Hutang = 2, Modal = 3, Pendapatan = 4, Biaya = 5 }
 
@@ -115,5 +125,17 @@ namespace AeroGL.Core
         public string JournalType { get; set; } // Diisi 'J' atau 'M' dari Header
         public string Side { get; set; }        // 'D' atau 'K'
         public decimal TotalAmount { get; set; }
+    }
+
+    public interface ICompanyRepository
+    {
+        Task<List<Company>> GetAll();
+        Task<Company> GetById(System.Guid id);
+        Task Upsert(Company company);
+        Task Delete(System.Guid id);
+
+        // Untuk fitur "Remember Last Company"
+        Task<Company> GetActive();
+        Task MarkAsActive(System.Guid id);
     }
 }
