@@ -1,61 +1,58 @@
-﻿using System.Windows;
+﻿using AeroGL.Core; //
+using AeroGL.Data; //
+using System.Windows;
 
 namespace AeroGL
 {
     public partial class ProjectGateWindow : Window
     {
-        public string ProjectCode { get; private set; }
+        // Panggil Repository Master untuk mengambil daftar PT
+        private readonly ICompanyRepository _repo = new MasterRepository();
 
         public ProjectGateWindow()
         {
             InitializeComponent();
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // prefill untuk memudahkan (tetap bisa diubah)
-            TxtKode.Text = SingleProject.Code;
-            if (string.IsNullOrWhiteSpace(TxtKode.Text)) TxtKode.Focus();
-            else TxtPass.Focus();
+            // 1. Ambil daftar PT dari master.db secara async
+            var companies = await _repo.GetAll();
+            ComboPerusahaan.ItemsSource = companies;
+
+            // 2. Pilih item pertama jika ada data
+            if (companies.Count > 0)
+                ComboPerusahaan.SelectedIndex = 0;
         }
 
         private void Ok_Click(object sender, RoutedEventArgs e)
         {
-            var kodeInput = (TxtKode.Text ?? "").Trim();
-            var passInput = TxtPass.Password ?? "";
+            var selected = ComboPerusahaan.SelectedItem as Company;
+            var inputPass = TxtPass.Password ?? ""; // Ambil input dari PasswordBox
 
-            var kodeSet = SingleProject.Code;     // sudah 3 digit (mis. "001")
-            var passSet = SingleProject.Pass ?? "";
-
-            if (string.IsNullOrWhiteSpace(kodeSet))
+            if (selected == null)
             {
-                MessageBox.Show("Kode Proyek belum diisi (Utility → A).", "AeroGL",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Pilih perusahaan dulu!");
                 return;
             }
 
-            // ← KUNCI: bandingkan setelah normalisasi
-            if (!ProjectCodeUtil.Matches(kodeInput, kodeSet))
+            // VALIDASI PASSWORD: Cek input vs password yang ada di master.db
+            if (!string.IsNullOrEmpty(selected.Password) && inputPass != selected.Password)
             {
-                MessageBox.Show("Kode Proyek tidak cocok.", "AeroGL",
+                MessageBox.Show("Password salah!", "AeroGL",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            if (!string.IsNullOrEmpty(passSet) && passInput != passSet)
-            {
-                MessageBox.Show("Password Proyek salah.", "AeroGL",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            ProjectCode = kodeSet; // ex: "001"
+            CurrentCompany.Data = selected;
             DialogResult = true;
+            Close();
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
+            Close();
         }
     }
 }

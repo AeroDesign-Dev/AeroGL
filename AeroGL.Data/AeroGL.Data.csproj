@@ -89,6 +89,8 @@
     <Compile Include="DBFImport.cs" />
     <Compile Include="JournalHeaderRepository.cs" />
     <Compile Include="JournalLineRepository.cs" />
+    <Compile Include="MasterRepository.cs" />
+    <Compile Include="MasterSchema.cs" />
     <Compile Include="MonthlyClosingService.cs" />
     <Compile Include="PostingRealtimeService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
