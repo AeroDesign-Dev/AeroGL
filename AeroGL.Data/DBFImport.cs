@@ -15,7 +15,7 @@ namespace AeroGL.Data
         /// </summary>
         public static async Task RunOnce(string folderPath)
         {
-            var marker = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "import.ok");
+            var marker = Path.ChangeExtension(CurrentCompany.Data.DbPath, ".importok");
             if (File.Exists(marker)) return;
 
             await ImportGLMAS(Path.Combine(folderPath, "GLMAS.DBF"));

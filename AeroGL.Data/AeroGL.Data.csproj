@@ -87,6 +87,7 @@
     <Compile Include="CoaRepository.cs" />
     <Compile Include="Db.cs" />
     <Compile Include="DBFImport.cs" />
+    <Compile Include="DbInitializer.cs" />
     <Compile Include="JournalHeaderRepository.cs" />
     <Compile Include="JournalLineRepository.cs" />
     <Compile Include="MasterRepository.cs" />

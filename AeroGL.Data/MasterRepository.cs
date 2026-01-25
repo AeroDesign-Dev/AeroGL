@@ -30,26 +30,27 @@ namespace AeroGL.Data
 
         public async Task Upsert(Company c)
         {
-            using (var cn = Db.OpenMaster())
+            using (var cn = Db.OpenMaster()) //
             {
                 const string sql = @"
-                    INSERT INTO Companies (Id, Name, DbPath, CreatedDate, LastAccessed, IsActive)
-                    VALUES (@Id, @Name, @DbPath, @CreatedDate, @LastAccessed, @IsActive)
-                    ON CONFLICT(Id) DO UPDATE SET 
-                        Name = @Name, 
-                        DbPath = @DbPath, 
-                        Password = @Password,
-                        LastAccessed = @LastAccessed, 
-                        IsActive = @IsActive;";
+            INSERT INTO Companies (Id, Name, Password, DbPath, CreatedDate, LastAccessed, IsActive)
+            VALUES (@Id, @Name, @Password, @DbPath, @CreatedDate, @LastAccessed, @IsActive)
+            ON CONFLICT(Id) DO UPDATE SET 
+                Name = @Name, 
+                Password = @Password,
+                DbPath = @DbPath, 
+                LastAccessed = @LastAccessed, 
+                IsActive = @IsActive;";
 
                 await cn.ExecuteAsync(sql, new
                 {
-                    Id = c.Id.ToString(), // Simpan GUID sebagai string
+                    Id = c.Id.ToString(),
                     c.Name,
+                    c.Password,
                     c.DbPath,
                     CreatedDate = c.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss"),
                     LastAccessed = c.LastAccessed?.ToString("yyyy-MM-dd HH:mm:ss"),
-                    IsActive = c.IsActive ? 1 : 0 // Map bool ke int SQLite
+                    IsActive = c.IsActive ? 1 : 0
                 });
             }
         }

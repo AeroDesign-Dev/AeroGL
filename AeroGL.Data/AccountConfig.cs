@@ -2,7 +2,7 @@
 using Dapper;
 using System.Linq;
 
-namespace AeroGL
+namespace AeroGL.Data
 {
     public static class AccountConfig
     {

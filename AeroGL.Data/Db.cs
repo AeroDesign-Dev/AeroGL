@@ -1,4 +1,5 @@
 ﻿using AeroGL.Core;
+using Dapper;
 using System;
 using System.Configuration;
 using System.Data.SQLite;
@@ -8,6 +9,10 @@ namespace AeroGL.Data
 {
     public static class Db
     {
+        static Db()
+        {
+            SqlMapper.AddTypeHandler(new GuidTypeHandler());
+        }
         public static SQLiteConnection Open()
         {
             // Kuncinya di sini: ambil path dari context global
@@ -28,6 +33,21 @@ namespace AeroGL.Data
             var cn = new SQLiteConnection($"Data Source={masterPath};Version=3;");
             cn.Open();
             return cn;
+        }
+    }
+
+    public class GuidTypeHandler : SqlMapper.TypeHandler<Guid>
+    {
+        // Cara simpan ke Database (Guid -> String)
+        public override void SetValue(System.Data.IDbDataParameter parameter, Guid value)
+        {
+            parameter.Value = value.ToString();
+        }
+
+        // Cara ambil dari Database (String -> Guid)
+        public override Guid Parse(object value)
+        {
+            return Guid.Parse((string)value);
         }
     }
 }

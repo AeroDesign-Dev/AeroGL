@@ -94,88 +94,32 @@ namespace AeroGL
             var key = char.ToUpperInvariant(m.Hotkey);
             if (key == 'X') { Close(); return; }
 
-            // Gate proyek untuk SEMUA menu kecuali Utility (J) dan Exit (X)
-            string projCode = null;
+            // 1. Gate Perusahaan: Panggil gate untuk SEMUA menu kecuali Utility (J) dan Exit (X)
             if (key != 'J' && key != 'X')
             {
-                if (!AskProjectGate(out projCode)) return;
+                // Jika user cancel di gate atau database gagal dimuat, jangan lanjut
+                if (!ShowCompanyGate()) return;
             }
 
-            if (key == 'A')
-            {
-                var w = new CoaWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
-            if (key == 'B')
-            {
-                var w = new JournalWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
-            if (key == 'C')
-            {
-                var w = new ReportJurnalUmumWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
-            if (key == 'D')
-            {
-                var w = new ReportPerRekeningWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
-            if (key == 'E')
-            {
-                var w = new ReportNeracaPercobaanWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
-            if (key == 'F')
-            {
-                var w = new ReportNeracaLajurWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
-            if (key == 'G')
-            {
-                var w = new ReportRugiLabaWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
-            if (key == 'H')
-            {
-                var w = new ReportNeracaWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
-            if (key == 'I')
-            {
-                var w = new ReportPerincianWindow { Owner = this };
-                SetProjectCodeIfSupported(w, projCode);
-                w.ShowDialog();
-                return;
-            }
+            // 2. Buka Window Target
+            // Tidak perlu kirim projCode lagi karena Repository sudah otomatis baca CurrentCompany.Data
+            if (key == 'A') { new CoaWindow { Owner = this }.ShowDialog(); return; }
+            if (key == 'B') { new JournalWindow { Owner = this }.ShowDialog(); return; }
+            if (key == 'C') { new ReportJurnalUmumWindow { Owner = this }.ShowDialog(); return; }
+            if (key == 'D') { new ReportPerRekeningWindow { Owner = this }.ShowDialog(); return; }
+            if (key == 'E') { new ReportNeracaPercobaanWindow { Owner = this }.ShowDialog(); return; }
+            if (key == 'F') { new ReportNeracaLajurWindow { Owner = this }.ShowDialog(); return; }
+            if (key == 'G') { new ReportRugiLabaWindow { Owner = this }.ShowDialog(); return; }
+            if (key == 'H') { new ReportNeracaWindow { Owner = this }.ShowDialog(); return; }
+            if (key == 'I') { new ReportPerincianWindow { Owner = this }.ShowDialog(); return; }
+
             if (key == 'J')
             {
-                // Utility TIDAK digate proyek
-                var w = new UtilityWindow { Owner = this };
-                w.ShowDialog();
+                new UtilityWindow { Owner = this }.ShowDialog();
                 return;
             }
 
-            // fallback
-            MessageBox.Show(
-                m.Hotkey + " - " + m.Title + "\n\n(placeholder — fungsional menyusul)",
-                "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(m.Hotkey + " - " + m.Title + "\n\n(placeholder)", "AeroGL");
         }
 
 
@@ -212,33 +156,16 @@ namespace AeroGL
                 default: return '\0';
             }
         }
-        private bool AskProjectGate(out string projCode)
+        private bool ShowCompanyGate()
         {
-            projCode = null;
-
-            // kalau SingleProject belum diisi, paksa user isi dulu di Utility A
-            if (!SingleProject.IsInitialized())
-            {
-                MessageBox.Show("Proyek belum di-setup. Buka Utility → A (Entry Kode Proyek) untuk mengisi.",
-                                "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
-                return false;
-            }
+            // Cek apakah context perusahaan sudah terisi (dari login awal App.xaml.cs)
+            // Jika belum atau mau ganti PT, tampilkan gate
+            if (AeroGL.Core.CurrentCompany.IsLoaded) return true;
 
             var dlg = new ProjectGateWindow { Owner = this };
-            if (dlg.ShowDialog() == true)
-            {
-                projCode = dlg.ProjectCode; // saat ini sama dgn Settings
-                return true;
-            }
-            return false;
+            return dlg.ShowDialog() == true;
         }
 
-        // opsional: kalau window target punya properti ProjectCode, set otomatis
-        private static void SetProjectCodeIfSupported(Window w, string code)
-        {
-            var p = w.GetType().GetProperty("ProjectCode");
-            if (p != null && p.CanWrite && p.PropertyType == typeof(string)) p.SetValue(w, code, null);
-        }
 
     }
 

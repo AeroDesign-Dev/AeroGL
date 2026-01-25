@@ -54,5 +54,13 @@ namespace AeroGL
             DialogResult = false;
             Close();
         }
+
+        private void ManageCompany_Click(object sender, RoutedEventArgs e)
+        {
+            var manager = new CompanyManagerWindow();
+            manager.Owner = this; // Biar muncul di tengah GateWindow
+            manager.ShowDialog();
+            Window_Loaded(null, null);
+        }
     }
 }

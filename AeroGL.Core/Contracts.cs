@@ -10,7 +10,6 @@ namespace AeroGL.Core
         public System.Guid Id { get; set; }
         public string Name { get; set; }
         public string Password { get; set; }
-        public string Password { get; set; }
         public string DbPath { get; set; } // Path lengkap ke file .db perusahaan
         public System.DateTime CreatedDate { get; set; }
         public System.DateTime? LastAccessed { get; set; }
