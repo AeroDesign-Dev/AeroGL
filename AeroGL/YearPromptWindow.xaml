@@ -1,0 +1,16 @@
+﻿<Window x:Class="AeroGL.YearPromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Pilih Tahun" Height="180" Width="300"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" WindowStyle="ToolWindow"
+        Background="#15152A" FontFamily="Consolas">
+    <StackPanel Margin="20" VerticalAlignment="Center">
+        <TextBlock Text="MASUKKAN TAHUN REPOSTING:" Foreground="#9EEAF9" Margin="0,0,0,10"/>
+        <TextBox x:Name="TxtYear" FontSize="18" Padding="5" Background="#2A2752" Foreground="White" 
+                 BorderBrush="#4444FF" HorizontalContentAlignment="Center"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="OK" Width="80" Height="30" Margin="0,0,10,0" Click="Ok_Click" IsDefault="True"/>
+            <Button Content="CANCEL" Width="80" Height="30" IsCancel="True"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

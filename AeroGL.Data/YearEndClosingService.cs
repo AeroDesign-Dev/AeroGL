@@ -11,87 +11,60 @@ namespace AeroGL.Data
         public async Task RunYearEnd(int year)
         {
             int nextYear = year + 1;
-
             using (var cn = Db.Open())
+            using (var trans = cn.BeginTransaction())
             {
-                using (var trans = cn.BeginTransaction())
+                try
                 {
-                    try
+                    string code016 = await cn.ExecuteScalarAsync<string>("SELECT Val FROM Config WHERE Key='LabaDitahan'", null, trans) ?? "016";
+                    string code017 = await cn.ExecuteScalarAsync<string>("SELECT Val FROM Config WHERE Key='LabaBerjalan'", null, trans) ?? "017";
+
+                    var allCoas = (await cn.QueryAsync<Coa>("SELECT * FROM Coa")).ToList();
+                    var decBalances = (await cn.QueryAsync<CoaBalance>("SELECT * FROM CoaBalance WHERE Year=@y AND Month=12", new { y = year }, trans)).ToDictionary(x => x.Code3);
+
+                    decBalances.TryGetValue(code017, out var row017);
+                    decimal profitAccumulated = row017 != null ? (decimal)(row017.Saldo + row017.Kredit - row017.Debet) : 0m;
+
+                    foreach (var coa in allCoas)
                     {
-                        // ---------------------------------------------------------
-                        // OPSI A: STRICT REPLICATION (DOS STYLE)
-                        // ---------------------------------------------------------
-                        // Logic:
-                        // 1. Ambil Saldo Akhir Tahun (Bulan 12).
-                        // 2. Akun P&L -> Di-RESET jadi 0 buat tahun depan.
-                        // 3. Akun Neraca -> Di-COPY bulat-bulat (tanpa penambahan Laba).
-                        // 4. Hasilnya: Laba tahun ini HILANG, Neraca Awal Tahun Depan SELISIH.
+                        decBalances.TryGetValue(coa.Code3, out var b);
+                        decimal sOld = (decimal)(b?.Saldo ?? 0);
+                        decimal dOld = (decimal)(b?.Debet ?? 0);
+                        decimal kOld = (decimal)(b?.Kredit ?? 0);
 
-                        var allCoa = (await cn.QueryAsync<Coa>("SELECT * FROM Coa")).ToDictionary(x => x.Code3);
+                        decimal endingBal = (coa.Type == AccountType.Debit) ? sOld + dOld - kOld : sOld + kOld - dOld;
 
-                        // Ambil Saldo Bulan 12
-                        var decBalances = await cn.QueryAsync<CoaBalance>(@"
-                            SELECT * FROM CoaBalance WHERE Year=@y AND Month=12",
-                            new { y = year }, trans);
-
-                        foreach (var b in decBalances)
+                        decimal finalVal = 0;
+                        if (coa.Grp == AccountGroup.Pendapatan || coa.Grp == AccountGroup.Biaya || coa.Code3 == code017)
                         {
-                            if (!allCoa.ContainsKey(b.Code3)) continue;
-                            var coa = allCoa[b.Code3];
-
-                            // Hitung Saldo Akhir Tahun Ini
-                            decimal saldoAkhirTahun = 0;
-                            if (coa.Type == AccountType.Debit)
-                                saldoAkhirTahun = b.Saldo + b.Debet - b.Kredit;
-                            else
-                                saldoAkhirTahun = b.Saldo + b.Kredit - b.Debet;
-
-                            // Tentukan Saldo Awal Tahun Depan
-                            decimal saldoAwalTahunDepan = 0;
-
-                            if (coa.Grp == AccountGroup.Pendapatan || coa.Grp == AccountGroup.Biaya)
-                            {
-                                // REPLIKASI DOS: Reset P&L jadi 0.
-                                // Laba/Rugi tahun ini menguap begitu saja.
-                                saldoAwalTahunDepan = 0;
-                            }
-                            else
-                            {
-                                // REPLIKASI DOS: Copy Saldo Neraca apa adanya.
-                                // Laba Ditahan (016) TIDAK DITAMBAH apapun. Tetap angka lama.
-                                saldoAwalTahunDepan = saldoAkhirTahun;
-                            }
-
-                            // Simpan ke Bulan 0 (Opening Balance) Tahun Depan
-                            var exists = await cn.ExecuteScalarAsync<int>(@"
-                                SELECT COUNT(1) FROM CoaBalance WHERE Code3=@c AND Year=@ny AND Month=0",
-                                new { c = b.Code3, ny = nextYear }, trans);
-
-                            if (exists > 0)
-                            {
-                                await cn.ExecuteAsync(@"
-                                    UPDATE CoaBalance SET Saldo = @s 
-                                    WHERE Code3=@c AND Year=@ny AND Month=0",
-                                    new { s = saldoAwalTahunDepan, c = b.Code3, ny = nextYear }, trans);
-                            }
-                            else
-                            {
-                                await cn.ExecuteAsync(@"
-                                    INSERT INTO CoaBalance (Code3, Year, Month, Saldo, Debet, Kredit)
-                                    VALUES (@c, @ny, 0, @s, 0, 0)",
-                                    new { c = b.Code3, ny = nextYear, s = saldoAwalTahunDepan }, trans);
-                            }
+                            finalVal = 0; // Reset P&L dan Laba Berjalan
+                        }
+                        else if (coa.Code3 == code016)
+                        {
+                            finalVal = endingBal + profitAccumulated; // Setor Laba ke Ditahan
+                        }
+                        else
+                        {
+                            finalVal = endingBal; // Carry forward Neraca (Kas, dkk)
                         }
 
-                        trans.Commit();
+                        // Update Month 0 (Opening) DAN Month 1 (Januari)
+                        await UpsertBalance(cn, coa.Code3, nextYear, 0, finalVal, trans);
+                        await UpsertBalance(cn, coa.Code3, nextYear, 1, finalVal, trans);
                     }
-                    catch (Exception)
-                    {
-                        trans.Rollback();
-                        throw;
-                    }
+                    trans.Commit();
                 }
+                catch { trans.Rollback(); throw; }
             }
+        }
+
+        private async Task UpsertBalance(System.Data.IDbConnection cn, string code3, int y, int m, decimal val, System.Data.IDbTransaction tx)
+        {
+            const string sql = @"
+        INSERT INTO CoaBalance (Code3, Year, Month, Saldo, Debet, Kredit)
+        VALUES (@c, @y, @m, @v, 0, 0)
+        ON CONFLICT(Code3, Year, Month) DO UPDATE SET Saldo = @v, Debet = 0, Kredit = 0;";
+            await cn.ExecuteAsync(sql, new { c = code3, y = y, m = m, v = val }, tx);
         }
     }
 }

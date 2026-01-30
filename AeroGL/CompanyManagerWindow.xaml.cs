@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+
 // Alias untuk folder browser
 using WinForms = System.Windows.Forms;
 
@@ -18,6 +20,8 @@ namespace AeroGL
         {
             InitializeComponent();
             LoadData();
+
+            TxtName.TextChanged += (s, e) => SetButtonStates();
         }
 
         private async void LoadData()
@@ -25,18 +29,46 @@ namespace AeroGL
             GridCompany.ItemsSource = await _repo.GetAll();
         }
 
+        private void SetButtonStates()
+        {
+            var name = TxtName.Text.Trim();
+            var path = TxtPath.Text.Trim();
+            bool fileExists = !string.IsNullOrEmpty(path) && File.Exists(path);
+            bool hasSelection = GridCompany.SelectedItem != null;
+            bool hasNameAndPath = !string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(path);
+
+            // 1. DAFTARKAN: Aktif jika Nama diisi, Path ada, dan Filenya MEMANG ADA di disk.
+            BtnDaftarkan.IsEnabled = hasNameAndPath && fileExists;
+
+            // 2. BUAT DB BARU: Aktif jika Nama diisi, Path ada, dan Filenya BELUM ADA (baru mau dibuat).
+            BtnBuatBaru.IsEnabled = hasNameAndPath && !fileExists;
+
+            // 3. HAPUS & IMPORT: Hanya aktif jika ada baris yang dipilih di tabel.
+            BtnHapus.IsEnabled = hasSelection;
+            BtnImport.IsEnabled = hasSelection;
+        }
+
+        private void GridCompany_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            SetButtonStates();
+        }
+
         private void Browse_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {
                 Filter = "SQLite Database|*.db",
-                Title = "Pilih atau Tentukan Lokasi Database"
+                Title = "Pilih atau Tentukan Lokasi Database",
+                // KUNCI: Supaya user bisa ngetik nama file baru yang belum ada di disk
+                CheckFileExists = false,
+                CheckPathExists = true
             };
 
             if (dialog.ShowDialog() == true)
             {
                 TxtPath.Text = dialog.FileName;
 
+                // Logic Info (Visual Feedback)
                 if (File.Exists(dialog.FileName))
                 {
                     TxtInfo.Text = "Database ditemukan. Klik 'DAFTARKAN'.";
@@ -44,9 +76,12 @@ namespace AeroGL
                 }
                 else
                 {
+                    // Sekarang ini bakal muncul kalau user ngetik nama baru
                     TxtInfo.Text = "File tidak ada. Klik 'BUAT DB BARU'.";
                     TxtInfo.Foreground = System.Windows.Media.Brushes.Yellow;
                 }
+
+                SetButtonStates();
             }
         }
 

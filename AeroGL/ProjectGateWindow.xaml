@@ -1,36 +1,97 @@
 ﻿<Window x:Class="AeroGL.ProjectGateWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Pilih Perusahaan" Height="190" Width="360"
+        Title="Pilih Perusahaan" Height="360" Width="450"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize" WindowStyle="ToolWindow"
-        FontFamily="Consolas" Background="#2B2B2B" Foreground="White">
+        FontFamily="Consolas" Background="#15152A" Foreground="White"
+        Loaded="Window_Loaded" SnapsToDevicePixels="True" UseLayoutRounding="True">
+
+    <Window.Resources>
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#9EEAF9"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="InputBox" TargetType="Control">
+            <Setter Property="Background" Value="#15152A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#4444FF"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="6,0"/>
+        </Style>
+
+        <Style x:Key="DarkComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="#15152A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4444FF"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#2D8F6F"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="8"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="16"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="120"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
 
-        <TextBlock Text="Perusahaan" Grid.Row="0" Grid.Column="0" Margin="0,4,12,0"/>
+        <Border Grid.Row="0" Background="#2A2752" Padding="12" CornerRadius="6" Margin="0,0,0,14">
+            <DockPanel LastChildFill="False">
+                <TextBlock Text="DATABASE SELECTION" Foreground="White" FontWeight="Bold"/>
+                <TextBlock Text="v2" DockPanel.Dock="Right" Foreground="#A3D8FF"/>
+            </DockPanel>
+        </Border>
 
-        <ComboBox x:Name="ComboPerusahaan" 
-                  Grid.Row="0" Grid.Column="1" 
-                  Height="28" 
-                  VerticalContentAlignment="Center"
-                  DisplayMemberPath="Name" />
-        <TextBlock Text="Password" Grid.Row="2" Grid.Column="0" Margin="0,4,12,0"/>
-        <PasswordBox x:Name="TxtPass" Grid.Row="2" Grid.Column="1" Height="28" Padding="6"/>
-        
-        <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="OK" Width="90" Margin="0,0,8,0" Click="Ok_Click"/>
-            <Button Content="Cancel" Width="90" Click="Cancel_Click"/>
-            <Button Content="KELOLA" Width="90" Margin="0,0,8,0" Click="ManageCompany_Click" Background="#444444" Foreground="White"/>
+        <Border Grid.Row="1" Background="#2A2752" Padding="20" CornerRadius="8" Margin="0,0,0,14">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="PERUSAHAAN" Style="{StaticResource Lbl}"/>
+                    <ComboBox x:Name="ComboPerusahaan" Grid.Column="1" 
+                              Style="{StaticResource InputBox}"
+                              DisplayMemberPath="Name"
+                              Foreground="Black"
+                              ItemContainerStyle="{StaticResource DarkComboItem}">
+                        <ComboBox.Resources>
+                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#15152A" />
+                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2D8F6F" />
+                        </ComboBox.Resources>
+                    </ComboBox>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Content="MASUK" Width="100" Height="32" Margin="0,0,8,0" Click="Ok_Click"
+                    Background="#2D8F6F" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+            <Button Content="KELUAR" Width="100" Height="32" Click="Cancel_Click" IsCancel="True"
+                    Background="#FF6060" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
         </StackPanel>
+
+        <Button Grid.Row="4" Content="KELOLA DAFTAR PERUSAHAAN" Click="ManageCompany_Click" 
+                Height="45" FontWeight="Bold" FontSize="13"
+                Background="#FFBC00" Foreground="White" BorderThickness="0">
+            <Button.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="6"/>
+                </Style>
+            </Button.Resources>
+        </Button>
     </Grid>
 </Window>

@@ -83,6 +83,7 @@
   <ItemGroup>
     <Compile Include="AccountConfig.cs" />
     <Compile Include="AliasRepository.cs" />
+    <Compile Include="BackupService.cs" />
     <Compile Include="CoaBalanceRepository.cs" />
     <Compile Include="CoaRepository.cs" />
     <Compile Include="Db.cs" />

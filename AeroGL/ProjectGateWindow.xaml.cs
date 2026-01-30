@@ -1,5 +1,7 @@
 ﻿using AeroGL.Core; //
 using AeroGL.Data; //
+using System;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace AeroGL
@@ -12,35 +14,16 @@ namespace AeroGL
         public ProjectGateWindow()
         {
             InitializeComponent();
-        }
 
-        private async void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            // 1. Ambil daftar PT dari master.db secara async
-            var companies = await _repo.GetAll();
-            ComboPerusahaan.ItemsSource = companies;
-
-            // 2. Pilih item pertama jika ada data
-            if (companies.Count > 0)
-                ComboPerusahaan.SelectedIndex = 0;
+            _ = RefreshData();
         }
 
         private void Ok_Click(object sender, RoutedEventArgs e)
         {
             var selected = ComboPerusahaan.SelectedItem as Company;
-            var inputPass = TxtPass.Password ?? ""; // Ambil input dari PasswordBox
-
             if (selected == null)
             {
                 MessageBox.Show("Pilih perusahaan dulu!");
-                return;
-            }
-
-            // VALIDASI PASSWORD: Cek input vs password yang ada di master.db
-            if (!string.IsNullOrEmpty(selected.Password) && inputPass != selected.Password)
-            {
-                MessageBox.Show("Password salah!", "AeroGL",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -55,12 +38,38 @@ namespace AeroGL
             Close();
         }
 
-        private void ManageCompany_Click(object sender, RoutedEventArgs e)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        // Buat fungsi khusus refresh agar bisa dipanggil berkali-kali
+        private async Task RefreshData()
+        {
+            try
+            {
+                var companies = await _repo.GetAll();
+                ComboPerusahaan.ItemsSource = companies;
+
+                if (companies.Count > 0 && ComboPerusahaan.SelectedIndex == -1)
+                    ComboPerusahaan.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Gagal memuat daftar perusahaan: " + ex.Message, "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void ManageCompany_Click(object sender, RoutedEventArgs e)
         {
             var manager = new CompanyManagerWindow();
-            manager.Owner = this; // Biar muncul di tengah GateWindow
+            manager.Owner = this;
             manager.ShowDialog();
-            Window_Loaded(null, null);
+
+            await RefreshData();
         }
+        
     }
+
 }

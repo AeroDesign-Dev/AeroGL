@@ -6,6 +6,40 @@
         WindowStartupLocation="CenterOwner" SnapsToDevicePixels="True" UseLayoutRounding="True">
 
     <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Width" Value="100"/>
+            <Setter Property="Padding" Value="15,0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                            Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="1" 
+                            CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#222233"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#333344"/>
+                                <Setter Property="Foreground" Value="#555566"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="Hdr" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#A3D8FF"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -39,12 +73,12 @@
         <Border Grid.Row="0" Background="#2A2752" Padding="12" CornerRadius="6" Margin="0,0,0,14">
             <DockPanel LastChildFill="False">
                 <TextBlock Text="MANAGEMENT / MULTI-DATABASE" Foreground="#9EEAF9" VerticalAlignment="Center"/>
-                <TextBlock Text="AeroGL v2" DockPanel.Dock="Right" Foreground="#B7C9FF" VerticalAlignment="Center"/>
+                <TextBlock Text="AeroGL" DockPanel.Dock="Right" Foreground="#B7C9FF" VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
         <Border Grid.Row="1" Background="#0E0F1D" CornerRadius="8" Padding="2" Margin="0,0,0,14">
-            <DataGrid x:Name="GridCompany" AutoGenerateColumns="False" IsReadOnly="True" 
+            <DataGrid x:Name="GridCompany" SelectionChanged="GridCompany_SelectionChanged" AutoGenerateColumns="False" IsReadOnly="True" 
                       Background="Transparent" BorderThickness="0" Foreground="White"
                       RowBackground="Transparent" GridLinesVisibility="Horizontal"
                       HorizontalGridLinesBrush="#2A2752" HeadersVisibility="Column" 
@@ -106,20 +140,20 @@
             <TextBlock x:Name="TxtInfo" Foreground="#AAA" VerticalAlignment="Center" Text="Ready."/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button Content="HAPUS" Click="Delete_Click" Margin="0,0,8,0" Height="32" Padding="15,0"
-            Background="#FF6060" Foreground="White" BorderBrush="#FF6060" FontWeight="Bold"/>
+                <Button x:Name="BtnHapus" Content="HAPUS" Click="Delete_Click" Margin="0,0,8,0" Height="32" Padding="15,0"
+            Background="#FF6060" Foreground="White" FontWeight="Bold" IsEnabled="False"/>
 
-                <Button Content="DAFTARKAN" Click="RegisterExisting_Click" Margin="0,0,8,0" Height="32" Padding="15,0"
-            Background="#444466" Foreground="White" BorderBrush="#666" FontWeight="Bold"/>
+                <Button x:Name="BtnDaftarkan" Content="DAFTARKAN" Click="RegisterExisting_Click" Margin="0,0,8,0" Height="32" Padding="15,0"
+            Background="#444466" Foreground="White" FontWeight="Bold" IsEnabled="False"/>
 
-                <Button Content="BUAT DB BARU" Click="CreateNew_Click" Margin="0,0,8,0" Height="32" Padding="15,0"
-            Background="#2A2752" Foreground="White" BorderBrush="#4444FF" FontWeight="Bold"/>
+                <Button x:Name="BtnBuatBaru" Content="BUAT BARU" Click="CreateNew_Click" Margin="0,0,8,0" Height="32" Padding="15,0"
+            Background="#2A2752" Foreground="White" FontWeight="Bold" IsEnabled="False"/>
 
-                <Button Content="IMPORT DBF" Click="ImportDbf_Click" Margin="0,0,8,0" Height="32" Padding="15,0"
-            Background="#2D8F6F" Foreground="White" BorderBrush="#2D8F6F" FontWeight="Bold"/>
+                <Button x:Name="BtnImport" Content="IMPORT DBF" Click="ImportDbf_Click" Margin="0,0,8,0" Height="32" Padding="15,0"
+            Background="#2D8F6F" Foreground="White" FontWeight="Bold" IsEnabled="False"/>
 
                 <Button Content="TUTUP" IsCancel="True" Height="32" Padding="15,0"
-            Background="#333" Foreground="White" BorderBrush="#555"/>
+            Background="#FF6060" Foreground="White"/>
             </StackPanel>
         </Grid>
     </Grid>

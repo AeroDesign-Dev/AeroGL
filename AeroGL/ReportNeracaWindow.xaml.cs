@@ -123,79 +123,70 @@ namespace AeroGL
         // ===== Core builder (BULAN SAJA) =====
         private async Task<NeracaView> BuildView(int year, int month)
         {
-            // Normalisasi nilai (REAL/TEXT dgn koma/titik) + paksa tipe akun jadi "D"/"K"
-            string norm(string col) =>
-                $"(CASE WHEN typeof({col})='text' THEN 1.0 * CAST(REPLACE({col}, ',', '.') AS REAL) ELSE 1.0 * {col} END)";
+            // 1. Logic normalisasi (Tetap pakai punya lu)
+            string norm(string col) => $"(CASE WHEN typeof({col})='text' THEN 1.0 * CAST(REPLACE({col}, ',', '.') AS REAL) ELSE 1.0 * {col} END)";
             string typeExpr = "CASE WHEN CAST(c.Type AS TEXT) IN ('0','D','d') THEN 'D' ELSE 'K' END";
 
             string sqlMonth = $@"
-SELECT c.Code3, c.Name, {typeExpr} AS Type,
-       COALESCE({norm("cb.Saldo")},  0.0) AS Saldo,
-       COALESCE({norm("cb.Debet")},  0.0) AS Debet,
-       COALESCE({norm("cb.Kredit")}, 0.0) AS Kredit
-FROM Coa c
-LEFT JOIN CoaBalance cb 
-       ON cb.Code3=c.Code3 AND cb.Year=@y AND cb.Month=@m
-WHERE c.Code3 LIKE '%.%.%'";
+        SELECT c.Code3, c.Name, {typeExpr} AS Type,
+               COALESCE({norm("cb.Saldo")}, 0.0) AS Saldo,
+               COALESCE({norm("cb.Debet")}, 0.0) AS Debet,
+               COALESCE({norm("cb.Kredit")}, 0.0) AS Kredit
+        FROM Coa c
+        LEFT JOIN CoaBalance cb ON cb.Code3=c.Code3 AND cb.Year=@y AND cb.Month=@m
+        WHERE c.Code3 LIKE '%.%.%'";
 
             BalRow[] raw;
             using (var cn = Db.Open())
             {
-                raw = (await cn.QueryAsync<BalRow>(sqlMonth, new { y = year, m = month }))
-                        .ToArray();
+                raw = (await cn.QueryAsync<BalRow>(sqlMonth, new { y = year, m = month })).ToArray();
             }
 
-            // ===== Hitung per kelompok (semua pakai SumByFirst: xxx.*.*) =====
-            // AKTIVA LANCAR
-            var kas = SumByFirst(raw, "001");
-            var bank = SumByFirst(raw, "002");
-            var piutangDagang = SumByFirst(raw, "003");
-            var persediaan = SumByFirst(raw, "004");
-            var piutangKaryawan = SumByFirst(raw, "005");
-            var pajakDimuka = SumByFirst(raw, "006");
+            // 2. LOGIKA HYBRID LABA BERJALAN (Kuncinya di sini bro)
+            string pBerjalan = FirstSeg(AccountConfig.PrefixLabaBerjalan); // Ambil prefix '017'
+            decimal labaBerjalan = 0;
 
-            // AKTIVA TETAP
-            var aktivaTetap = SumByFirst(raw, "007");
-            var akumPenyusutan = Math.Abs(SumByFirst(raw, "008"));   // pengurang (ditampilkan dalam kurung)
+            if (month < 12)
+            {
+                // JIKA 1-11: Ambil SALDO AWAL bulan depan (M+1)
+                using (var cn = Db.Open())
+                {
+                    labaBerjalan = await cn.ExecuteScalarAsync<decimal>(@"
+                SELECT COALESCE(Saldo, 0) FROM CoaBalance 
+                WHERE Code3 LIKE @prefix AND Year=@y AND Month=@m",
+                        new { prefix = pBerjalan + ".%", y = year, m = month + 1 });
+                }
+            }
+            else
+            {
+                // JIKA BULAN 12: Pakai saldo akhir bulan 12 itu sendiri (pakai SumByFirst lu)
+                labaBerjalan = SumByFirst(raw, pBerjalan);
+            }
 
-            // PASSIVA LANCAR
-            var hutangDagang = SumByFirst(raw, "010");
-            var hutangBank = SumByFirst(raw, "011");
-            var hutangLain = SumByFirst(raw, "012");
-            var bymhDibayar = Math.Abs(SumByFirst(raw, "013"));      // pengurang subtotal
-            var pymhDibayar = SumByFirst(raw, "014");
-
-            // MODAL (semua anak)
-            var modalDisetor = SumByFirst(raw, "015");
+            // 3. Hitung sisanya (Pakai SumByFirst punya lu)
             string pDitahan = FirstSeg(AccountConfig.PrefixLabaDitahan);
-            string pBerjalan = FirstSeg(AccountConfig.PrefixLabaBerjalan);
-
-            var labaDitahan = SumByFirst(raw, pDitahan);
-            var labaBerjalan = SumByFirst(raw, pBerjalan);
 
             var vm = new NeracaView
             {
                 Title = $"LAPORAN NERACA — {CompanyName}",
                 Period = FormatPeriod(year, month),
+                Kas = SumByFirst(raw, "001"),
+                Bank = SumByFirst(raw, "002"),
+                PiutangDagang = SumByFirst(raw, "003"),
+                Persediaan = SumByFirst(raw, "004"),
+                PiutangKaryawan = SumByFirst(raw, "005"),
+                PajakDibayarDimuka = SumByFirst(raw, "006"),
+                AktivaTetap = SumByFirst(raw, "007"),
+                AkumulasiPenyusutan = Math.Abs(SumByFirst(raw, "008")),
+                HutangDagang = SumByFirst(raw, "010"),
+                HutangBank = SumByFirst(raw, "011"),
+                HutangLain = SumByFirst(raw, "012"),
+                BYMHDibayar = Math.Abs(SumByFirst(raw, "013")),
+                PYMHDibayar = SumByFirst(raw, "014"),
+                ModalDisetor = SumByFirst(raw, "015"),
+                LabaDitahan = SumByFirst(raw, pDitahan),
 
-                Kas = kas,
-                Bank = bank,
-                PiutangDagang = piutangDagang,
-                Persediaan = persediaan,
-                PiutangKaryawan = piutangKaryawan,
-                PajakDibayarDimuka = pajakDimuka,
-
-                AktivaTetap = aktivaTetap,
-                AkumulasiPenyusutan = akumPenyusutan,
-
-                HutangDagang = hutangDagang,
-                HutangBank = hutangBank,
-                HutangLain = hutangLain,
-                BYMHDibayar = bymhDibayar,
-                PYMHDibayar = pymhDibayar,
-
-                ModalDisetor = modalDisetor,
-                LabaDitahan = labaDitahan,
+                // MASUKKAN HASIL LOGIKA HYBRID TADI
                 LabaBerjalan = labaBerjalan
             };
 

@@ -9,6 +9,28 @@ namespace AeroGL
 {
     public partial class MainWindow : Window
     {
+        private bool PromptAndVerifyProjectPassword()
+        {
+
+            // Panggil box simpel (PasswordPromptWindow)
+            var dlg = new PasswordPromptWindow { Owner = this, Title = "Input Kode Proyek" };
+
+            if (dlg.ShowDialog() == true)
+            {
+                // Bandingkan dengan password yang ada di master.db untuk PT aktif
+                if (dlg.EnteredPassword == AeroGL.Core.CurrentCompany.Data.Password)
+                {
+                    return true;
+                }
+                else
+                {
+                    MessageBox.Show("Kode/Password Proyek Salah!", "AeroGL",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            return false;
+        }
+
         private readonly List<MenuEntry> _items = new List<MenuEntry>
         {
             new MenuEntry('A', "Entry Kode Rekening", "\uE70F"),    
@@ -94,15 +116,19 @@ namespace AeroGL
             var key = char.ToUpperInvariant(m.Hotkey);
             if (key == 'X') { Close(); return; }
 
-            // 1. Gate Perusahaan: Panggil gate untuk SEMUA menu kecuali Utility (J) dan Exit (X)
-            if (key != 'J' && key != 'X')
+            // --- LOGIKA GATE BARU ---
+
+            // Pastikan PT sudah dipilih di awal (ShowCompanyGate tetap ada)
+            if (!ShowCompanyGate()) return;
+
+            // Hanya menu A-I yang butuh "Buka Kunci Proyek"
+            // Utility (J) dan Exit (X) bypass bagian ini.
+            if ("ABCDEFGHI".IndexOf(key) >= 0)
             {
-                // Jika user cancel di gate atau database gagal dimuat, jangan lanjut
-                if (!ShowCompanyGate()) return;
+                if (!PromptAndVerifyProjectPassword()) return;
             }
 
-            // 2. Buka Window Target
-            // Tidak perlu kirim projCode lagi karena Repository sudah otomatis baca CurrentCompany.Data
+            // --- EKSEKUSI MENU ---
             if (key == 'A') { new CoaWindow { Owner = this }.ShowDialog(); return; }
             if (key == 'B') { new JournalWindow { Owner = this }.ShowDialog(); return; }
             if (key == 'C') { new ReportJurnalUmumWindow { Owner = this }.ShowDialog(); return; }
@@ -115,11 +141,10 @@ namespace AeroGL
 
             if (key == 'J')
             {
+                // Utility punya Password Utility sendiri di dalamnya, jadi aman.
                 new UtilityWindow { Owner = this }.ShowDialog();
                 return;
             }
-
-            MessageBox.Show(m.Hotkey + " - " + m.Title + "\n\n(placeholder)", "AeroGL");
         }
 
 

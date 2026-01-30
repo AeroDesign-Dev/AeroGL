@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using AeroGL.Data;
+using System.Windows;
+
 
 namespace AeroGL
 {
@@ -40,9 +42,11 @@ namespace AeroGL
             var oldPwd = (CkShow.IsChecked == true) ? TxtOldShow.Text : TxtOld.Password;
             var newPwd = (CkShow.IsChecked == true) ? TxtNewShow.Text : TxtNew.Password;
 
-            var stored = global::AeroGL.Properties.Settings.Default.UtilityPassword; // bisa null atau ""
+            // 1. Ambil password lama dari Database PT Aktif
+            // Gunakan Key "UtilityPassword" agar sinkron dengan Segmen 2
+            var stored = AccountConfig.Get("UtilityPassword");
 
-            // ---- First-time setup (belum diset) ----
+            // ---- First-time setup (belum pernah diset di DB) ----
             if (string.IsNullOrEmpty(stored))
             {
                 if (string.IsNullOrWhiteSpace(newPwd))
@@ -52,22 +56,23 @@ namespace AeroGL
                     return;
                 }
 
-                global::AeroGL.Properties.Settings.Default.UtilityPassword = newPwd.Trim();
-                global::AeroGL.Properties.Settings.Default.Save();
+                // Simpan ke Database PT aktif
+                AccountConfig.Set("UtilityPassword", newPwd.Trim());
 
-                MessageBox.Show("Password dibuat.", "AeroGL",
+                MessageBox.Show("Password Utility berhasil dibuat di Database.", "AeroGL",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 DialogResult = true;
                 return;
             }
 
-            // ---- Normal change (sudah diset) ----
+            // ---- Normal change (sudah ada password di DB) ----
             if (oldPwd != stored)
             {
                 MessageBox.Show("Old password salah.", "AeroGL",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
+
             if (string.IsNullOrWhiteSpace(newPwd))
             {
                 MessageBox.Show("New password tidak boleh kosong.", "AeroGL",
@@ -75,10 +80,10 @@ namespace AeroGL
                 return;
             }
 
-            global::AeroGL.Properties.Settings.Default.UtilityPassword = newPwd.Trim();
-            global::AeroGL.Properties.Settings.Default.Save();
+            // Update nilai baru ke Database
+            AccountConfig.Set("UtilityPassword", newPwd.Trim());
 
-            MessageBox.Show("Password berhasil diubah.", "AeroGL",
+            MessageBox.Show("Password Utility berhasil diperbarui.", "AeroGL",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
         }

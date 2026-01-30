@@ -125,6 +125,9 @@
     <Compile Include="EntryTabelWindow.xaml.cs">
       <DependentUpon>EntryTabelWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="MonthYearPromptWindow.xaml.cs">
+      <DependentUpon>MonthYearPromptWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="PasswordPromptWindow.xaml.cs">
       <DependentUpon>PasswordPromptWindow.xaml</DependentUpon>
     </Compile>
@@ -157,6 +160,9 @@
     <Compile Include="SingleProject.cs" />
     <Compile Include="UtilityWindow.xaml.cs">
       <DependentUpon>UtilityWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="YearPromptWindow.xaml.cs">
+      <DependentUpon>YearPromptWindow.xaml</DependentUpon>
     </Compile>
     <Page Include="ChangePasswordWindow.xaml">
       <SubType>Designer</SubType>
@@ -211,6 +217,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="MonthYearPromptWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="NarrationDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -256,6 +266,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UtilityWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="YearPromptWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

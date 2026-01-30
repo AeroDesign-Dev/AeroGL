@@ -18,11 +18,34 @@ namespace AeroGL.Data
             var marker = Path.ChangeExtension(CurrentCompany.Data.DbPath, ".importok");
             if (File.Exists(marker)) return;
 
-            await ImportGLMAS(Path.Combine(folderPath, "GLMAS.DBF"));
+            // 1. DETEKSI TAHUN: Ambil satu sampel tanggal dari GLTRAN1 buat nentuin 'Reference Year'
+            int targetYear = await DetectYear(Path.Combine(folderPath, "GLTRAN1.DBF"));
+
+            // 2. IMPORT: Gunakan targetYear yang sudah dinormalisasi ke 20xx
+            await ImportGLMAS(Path.Combine(folderPath, "GLMAS.DBF"), targetYear);
             await ImportGLTRAN1(Path.Combine(folderPath, "GLTRAN1.DBF"));
             await ImportGLTRAN2(Path.Combine(folderPath, "GLTRAN2.DBF"));
 
             File.WriteAllText(marker, DateTime.Now.ToString("s"));
+        }
+
+        private static async Task<int> DetectYear(string path)
+        {
+            if (!File.Exists(path)) return DateTime.Today.Year;
+            try
+            {
+                using (var table = Table.Open(path))
+                {
+                    var reader = table.OpenReader();
+                    if (reader.Read())
+                    {
+                        string iso = ToIsoDate(reader, "TANGGAL");
+                        return DateTime.Parse(iso).Year;
+                    }
+                }
+            }
+            catch { }
+            return DateTime.Today.Year;
         }
 
         // ==========================================================
@@ -30,7 +53,7 @@ namespace AeroGL.Data
         // Field asumsi: NOREK (C), NMREK (C), TPREK (C 'D'/'K' atau N 0/1), GRREK (N 1..5),
         //               SALDO00..12 (N), DEBET00..12 (N), KREDIT00..12 (N)
         // ==========================================================
-        public static async Task ImportGLMAS(string path)
+        public static async Task ImportGLMAS(string path, int targetYear)
         {
             using (var cn = Db.Open())
             using (var tx = cn.BeginTransaction())
@@ -63,18 +86,8 @@ VALUES(@c, @y, @m, @sa, @de, @kr)
 ON CONFLICT(Code3,Year,Month) DO UPDATE SET
   Saldo=@sa, Debet=@de, Kredit=@kr;";
 
-                        // GLMAS tidak menyimpan Tahun → taruh Year=0 sebagai snapshot awal
-                        int YearDefault = 0;
 
-                        await cn.ExecuteAsync(upBal, new
-                        {
-                            c = code3,
-                            y = YearDefault,
-                            m = m,
-                            sa = saldo,
-                            de = debet,
-                            kr = kredit
-                        }, tx);
+                        await cn.ExecuteAsync(upBal, new { c = code3, y = targetYear, m = m, sa = saldo, de = debet, kr = kredit }, tx);
                     }
                 }
                 tx.Commit();
@@ -247,36 +260,23 @@ VALUES(@no,@c2,@s,@a,@nar);";
             var obj = GetRaw(r, name);
             if (obj == null || obj is DBNull) return "1900-01-01";
 
-            if (obj is DateTime dt) return dt.ToString("yyyy-MM-dd");
+            DateTime dt;
+            string s = obj.ToString().Trim();
 
-            var s = obj.ToString().Trim();
-
-            // yyyyMMdd
-            if (s.Length == 8 && long.TryParse(s, out _))
+            if (obj is DateTime rawDt) dt = rawDt;
+            else if (!DateTime.TryParse(s, out dt))
             {
-                var y = int.Parse(s.Substring(0, 4));
-                var m = int.Parse(s.Substring(4, 2));
-                var d = int.Parse(s.Substring(6, 2));
-                return new DateTime(y, m, d).ToString("yyyy-MM-dd");
-            }
-
-            // ddMMyyyy (fallback kasar)
-            if (s.Length == 8 && s.IndexOf('/') < 0)
-            {
-                int d, m, y;
-                if (int.TryParse(s.Substring(0, 2), out d) &&
-                    int.TryParse(s.Substring(2, 2), out m) &&
-                    int.TryParse(s.Substring(4, 4), out y))
+                // Fallback yyyyMMdd
+                if (s.Length == 8 && long.TryParse(s, out _))
                 {
-                    return new DateTime(y, m, d).ToString("yyyy-MM-dd");
+                    dt = new DateTime(int.Parse(s.Substring(0, 4)), int.Parse(s.Substring(4, 2)), int.Parse(s.Substring(6, 2)));
                 }
+                else return "1900-01-01";
             }
 
-            DateTime any;
-            if (DateTime.TryParse(s, out any))
-                return any.ToString("yyyy-MM-dd");
-
-            return "1900-01-01";
+            // LOGIKA KUNCI: Paksa ke 20xx (Contoh: 1925 % 100 = 25 -> 2025)
+            int fixedYear = 2000 + (dt.Year % 100);
+            return new DateTime(fixedYear, dt.Month, dt.Day).ToString("yyyy-MM-dd");
         }
     }
 }

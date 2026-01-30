@@ -34,5 +34,25 @@ namespace AeroGL.Data
             }
             Reload();
         }
+
+        public static string Get(string key, string defaultValue = "")
+        {
+            using (var cn = Db.Open()) // Menggunakan database PT yang aktif
+            {
+                return cn.ExecuteScalar<string>(
+                    "SELECT Val FROM Config WHERE Key = @k", new { k = key }) ?? defaultValue;
+            }
+        }
+
+        public static void Set(string key, string val)
+        {
+            using (var cn = Db.Open())
+            {
+                // Gunakan INSERT OR REPLACE karena 'Key' adalah Primary Key
+                cn.Execute(
+                    "INSERT OR REPLACE INTO Config (Key, Val) VALUES (@k, @v)",
+                    new { k = key, v = val });
+            }
+        }
     }
 }

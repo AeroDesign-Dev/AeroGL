@@ -1,9 +1,12 @@
-﻿using System;
+﻿using AeroGL.Core;
+using AeroGL.Data;
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Microsoft.Win32;
 
 namespace AeroGL
 {
@@ -18,6 +21,7 @@ namespace AeroGL
             new MenuEntry('D', "Proses Akhir Tahun",    "\uE823"),
             new MenuEntry('E', "Ubah Password",         "\uE72E"),
             new MenuEntry('F', "Reposting Data",        "\uE7C3"),
+            new MenuEntry('G', "Backup Database Manual","\uE8B5"),
             new MenuEntry('X', "Exit",                  "\uE8BB"),
         };
 
@@ -101,7 +105,7 @@ namespace AeroGL
             if (key == 'X') { Close(); return; }
 
             // Gate A/B/C/D/F – wajib password
-            if ("ABCDF".IndexOf(key) >= 0)
+            if ("ABCDFG".IndexOf(key) >= 0)
             {
                 if (!IsUtilityPasswordSet())
                 {
@@ -127,36 +131,21 @@ namespace AeroGL
                     break;
 
                 case 'C': // --- PROSES AKHIR BULAN (Monthly Closing) ---
+                          // 1. Tampilkan Dialog Input Periode
+                    var monthYearDlg = new MonthYearPromptWindow { Owner = this };
+                    if (monthYearDlg.ShowDialog() != true) return;
 
-                    // 1. Tentukan mau close bulan apa.
-                    // IDEALNYA: Lo bikin Window kecil (DatePicker) buat user pilih bulan.
-                    // TAPI BUAT SEKARANG: Kita default ke "Bulan Lalu" (Common practice).
-                    var today = DateTime.Now;
-                    int targetMonth = today.Month - 1;
-                    int targetYear = today.Year;
+                    int targetMonth = monthYearDlg.SelectedMonth;
+                    int targetYear = monthYearDlg.SelectedYear;
 
-                    // Handle ganti tahun (Kalau sekarang Januari, close Desember tahun lalu)
-                    if (targetMonth == 0)
-                    {
-                        targetMonth = 12;
-                        targetYear--;
-                    }
-
-                    // 2. Validasi (Biar gak nabrak aturan Month 12 harus Year End)
-                    if (targetMonth == 12)
-                    {
-                        MessageBox.Show("Bulan 12 adalah Tutup Tahun.\nGunakan menu 'D' (Proses Akhir Tahun).",
-                            "Salah Menu", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        break;
-                    }
-
-                    // 3. Konfirmasi ke User
+                    // 2. Konfirmasi Detail (Sesuai Logika Blackbox)
                     var confirmClose = MessageBox.Show(
-                        $"Yakin ingin melakukan PROSES AKHIR BULAN untuk periode: {targetMonth}/{targetYear}?\n\n" +
-                        "Proses ini akan:\n" +
-                        "1. Mengunci transaksi bulan tersebut.\n" +
-                        "2. Memindahkan saldo akhir ke saldo awal bulan depan.\n" +
-                        "3. Me-reset Pendapatan & Biaya jadi 0 (Sesuai mode DOS).\n\n" +
+                        $"Yakin ingin melakukan PROSES AKHIR BULAN periode {targetMonth}/{targetYear}?\n\n" +
+                        "Sistem akan melakukan:\n" +
+                        "1. Menghitung Laba Bersih bulan tersebut.\n" +
+                        "2. Memindahkan Laba ke akun 'Laba Berjalan' (Modal).\n" +
+                        "3. Membentuk Saldo Awal bulan depan.\n" +
+                        "4. Me-reset Pendapatan & Biaya bulan depan jadi 0.\n\n" +
                         "Lanjutkan?",
                         "Konfirmasi Closing",
                         MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -165,44 +154,44 @@ namespace AeroGL
                     {
                         try
                         {
-                            // UI Feedback biar user tau lagi loading
                             this.Cursor = Cursors.Wait;
-                            TxtDate.Text = "Processing Closing...";
+                            TxtDate.Text = $"Closing {targetMonth}/{targetYear}...";
 
-                            // --- CALL SERVICE YANG KITA BUAT TADI ---
+                            // Panggil service yang sudah diupdate dengan logic Laba Berjalan
                             var closeSvc = new AeroGL.Data.MonthlyClosingService();
                             await closeSvc.RunClosing(targetYear, targetMonth);
 
-                            MessageBox.Show("Sukses! Proses Akhir Bulan selesai.", "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Sukses! Proses Akhir Bulan {targetMonth}/{targetYear} selesai.",
+                                "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Gagal Closing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show($"Gagal Closing: {ex.Message}", "Error",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                         finally
                         {
-                            // Balikin UI ke semula
                             this.Cursor = Cursors.Arrow;
                             TxtDate.Text = DateTime.Now.ToString("dd-MM-yyyy");
                         }
                     }
                     break;
-                
-                case 'D': // --- PROSES AKHIR TAHUN (Year End - Opsi A: DOS Style) ---
 
-                    // Asumsi: User menjalankan ini untuk menutup tahun berjalan.
-                    // Kalau mau aman, bisa cek bulan. Kalau bulan 1, mungkin mau tutup tahun lalu (Year-1).
-                    // Tapi default-nya kita set Tahun Sekarang.
-                    int closingYear = DateTime.Now.Year;
+                case 'D': // --- PROSES AKHIR TAHUN (Year End) ---
+                          // 1. Panggil Box Tahun (Sama seperti Reposting)
+                    var yearDlg1 = new YearPromptWindow { Owner = this };
+                    if (yearDlg1.ShowDialog() != true) return;
 
-                    // Warning Message yang JUJUR sesuai Opsi A
+                    int closingYear = yearDlg1.SelectedYear;
+
+                    // 2. Warning Message yang SPESIFIK ke Tahun Pilihan
                     var confirmYear = MessageBox.Show(
                         $"PERINGATAN: ANDA AKAN MELAKUKAN TUTUP BUKU TAHUN {closingYear}.\n\n" +
                         "Proses ini akan:\n" +
-                        "1. Me-RESET semua akun Pendapatan & Biaya menjadi 0.\n" +
-                        "2. Membentuk Saldo Awal tahun depan.\n" +
-                        "3. TIDAK menjurnal otomatis Laba ke Modal (Harus Jurnal Manual nanti).\n\n" +
-                        "Pastikan semua transaksi bulan 1-12 sudah selesai.\n" +
+                        "1. Memindahkan Laba Berjalan (017) ke Laba Ditahan (016) tahun depan.\n" +
+                        "2. Me-RESET semua akun Pendapatan & Biaya menjadi 0.\n" +
+                        "3. Membentuk Saldo Awal (Month 0) untuk tahun {closingYear + 1}.\n\n" +
+                        "Pastikan transaksi bulan 1-12 sudah benar.\n" +
                         "LANJUTKAN?",
                         "Konfirmasi Year End",
                         MessageBoxButton.YesNo, MessageBoxImage.Warning);
@@ -211,17 +200,14 @@ namespace AeroGL
                     {
                         try
                         {
-                            // UI Feedback
                             this.Cursor = Cursors.Wait;
-                            TxtDate.Text = "Proses Year End...";
+                            TxtDate.Text = $"Closing Year {closingYear}...";
 
-                            // Panggil Service Opsi A yang tadi kita buat
                             var yeSvc = new AeroGL.Data.YearEndClosingService();
                             await yeSvc.RunYearEnd(closingYear);
 
                             MessageBox.Show($"Tutup Buku Tahun {closingYear} SELESAI.\n" +
-                                $"Saldo Awal Tahun {closingYear + 1} sudah terbentuk.\n" +
-                                "Silakan cek Neraca Awal dan lakukan penyesuaian manual jika diperlukan.",
+                                $"Saldo Awal Tahun {closingYear + 1} sudah terbentuk.",
                                 "Sukses", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         catch (Exception ex)
@@ -230,7 +216,6 @@ namespace AeroGL
                         }
                         finally
                         {
-                            // Reset UI
                             this.Cursor = Cursors.Arrow;
                             TxtDate.Text = DateTime.Now.ToString("dd-MM-yyyy");
                         }
@@ -248,14 +233,19 @@ namespace AeroGL
                     break;
 
                 case 'F': // --- FITUR REPOSTING DATA ---
-                    var year = DateTime.Now.Year; // Bisa diganti prompt pilih tahun kalau mau advanced
+                          // 1. Panggil Box Tahun
+                    var yearDlg = new YearPromptWindow { Owner = this };
+                    if (yearDlg.ShowDialog() != true) return;
 
+                    int year = yearDlg.SelectedYear;
+
+                    // 2. Konfirmasi dengan Tahun yang dipilih
                     var res = MessageBox.Show(
-                        $"Yakin mau Reposting Data tahun {year}?\n\n" +
+                        $"PERINGATAN: Anda akan melakukan Reposting Data tahun {year}.\n\n" +
                         "Proses ini akan:\n" +
-                        "1. Mereset data saldo Debet/Kredit.\n" +
-                        "2. Menghitung ulang semua Jurnal dari awal.\n" +
-                        "3. Memperbaiki Saldo Akhir yang tidak balance.\n\n" +
+                        "1. Mereset data saldo Debet/Kredit pada tahun tersebut.\n" +
+                        "2. Menghitung ulang semua Jurnal dari awal berdasarkan tanggal.\n" +
+                        "3. Memasukkan kembali mutasi ke CoaBalance.\n\n" +
                         "Lanjutkan?",
                         "Konfirmasi Reposting",
                         MessageBoxButton.YesNo, MessageBoxImage.Warning);
@@ -265,26 +255,51 @@ namespace AeroGL
                         try
                         {
                             this.Cursor = Cursors.Wait;
-                            TxtDate.Text = "Sedang Memproses..."; // Status bar update
+                            TxtDate.Text = "Menghitung...";
 
                             var svc = new AeroGL.Data.RepostingService();
 
-                            // Update text realtime dari service
-                            svc.OnProgress += (msg) => { TxtDate.Text = msg; };
+                            // Wiring event OnProgress agar status bar UtilityWindow terupdate
+                            svc.OnProgress += (msg) => {
+                                Dispatcher.Invoke(() => TxtDate.Text = msg);
+                            };
 
-                            await svc.RunReposting(year);
+                            await svc.RunReposting(year); // Menjalankan reposting berdasarkan tahun input
 
-                            TxtDate.Text = DateTime.Now.ToString("dd-MM-yyyy"); // Balikin tanggal
-                            MessageBox.Show("Sukses! Proses Reposting Selesai.", "AeroGL", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Sukses! Reposting Tahun {year} Selesai.", "AeroGL",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         catch (Exception ex)
                         {
-                            TxtDate.Text = "Error!";
-                            MessageBox.Show($"Gagal Reposting: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show($"Gagal Reposting: {ex.Message}", "Error",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                         finally
                         {
                             this.Cursor = Cursors.Arrow;
+                            TxtDate.Text = DateTime.Now.ToString("dd-MM-yyyy");
+                        }
+                    }
+                    break;
+
+                case 'G': // --- LOGIKA BACKUP ---
+                    var sfd = new SaveFileDialog
+                    {
+                        FileName = $"Backup_{CurrentCompany.Data.Name}_{DateTime.Now:yyyyMMdd}.db",
+                        Filter = "SQLite Database|*.db"
+                    };
+
+                    if (sfd.ShowDialog() == true)
+                    {
+                        try
+                        {
+                            var bSvc = new BackupService();
+                            bSvc.CopyDatabase(CurrentCompany.Data.DbPath, sfd.FileName);
+                            MessageBox.Show("Backup Berhasil!");
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("Gagal: " + ex.Message);
                         }
                     }
                     break;
@@ -331,23 +346,20 @@ namespace AeroGL
         }
         private bool PromptAndVerifyUtilityPassword()
         {
-            // Hanya boleh dipanggil saat password SUDAH diset
             var dlg = new PasswordPromptWindow { Owner = this };
             if (dlg.ShowDialog() == true)
             {
-                var stored = global::AeroGL.Properties.Settings.Default.UtilityPassword ?? "";
+                var stored = AccountConfig.Get("UtilityPassword");
                 if (dlg.EnteredPassword == stored) return true;
 
-                MessageBox.Show("Password salah!", "AeroGL",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Password salah!", "AeroGL", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             return false;
         }
 
         private static bool IsUtilityPasswordSet()
         {
-            var stored = global::AeroGL.Properties.Settings.Default.UtilityPassword;
-            return !string.IsNullOrEmpty(stored);
+            return !string.IsNullOrEmpty(AccountConfig.Get("UtilityPassword"));
         }
     }
 

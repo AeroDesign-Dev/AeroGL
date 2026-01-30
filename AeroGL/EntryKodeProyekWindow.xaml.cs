@@ -1,9 +1,15 @@
-﻿using System.Windows;
+﻿using AeroGL.Core;
+using AeroGL.Data;
+using System;
+using System.Windows;
 
 namespace AeroGL
 {
     public partial class EntryKodeProyekWindow : Window
     {
+        // Pake repo master buat update record di master.db
+        private readonly ICompanyRepository _masterRepo = new MasterRepository();
+
         public EntryKodeProyekWindow()
         {
             InitializeComponent();
@@ -11,74 +17,70 @@ namespace AeroGL
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // load dari Settings
-            TxtKode.Text = SingleProject.Code;
-            TxtNama.Text = SingleProject.Name;
-            TxtPass.Password = SingleProject.Pass;
+            // Ambil data PT yang sedang aktif saat ini
+            var current = CurrentCompany.Data;
 
-            bool hasCode = !string.IsNullOrWhiteSpace(TxtKode.Text);
-            TxtKode.IsReadOnly = hasCode;   // LOCK: kalau sudah pernah diset, kodenya dikunci
-            TxtKode.ToolTip = hasCode ? "Kode proyek sudah dikunci (single project)." : null;
+            if (current == null) { Close(); return; }
 
-            TxtStatus.Text = hasCode
-                ? $"Tersimpan: {SingleProject.Code} — {SingleProject.Name}"
-                : "Belum ada proyek tersimpan.";
+            // Kode Proyek kita bikin ReadOnly karena ini identitas unik di Master
+            TxtKode.Text = "001"; // Default atau lu bisa tambah field Code di Company POCO nanti
+            TxtKode.IsReadOnly = true;
 
-            // Fokus yang nyaman
-            if (!hasCode) TxtKode.Focus();
-            else if (string.IsNullOrWhiteSpace(TxtNama.Text)) TxtNama.Focus();
-            else TxtPass.Focus();
+            TxtNama.Text = current.Name;
+            TxtPass.Password = current.Password;
+
+            TxtStatus.Text = $"Aktif: {current.Name}";
+            TxtNama.Focus();
         }
 
-        private void BtnClose_Click(object sender, RoutedEventArgs e)
+        private async void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            var newName = (TxtNama.Text ?? "").Trim();
+            var newPass = TxtPass.Password ?? "";
+
+            if (string.IsNullOrEmpty(newName))
+            {
+                MessageBox.Show("Nama proyek wajib diisi.", "AeroGL", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                this.Cursor = System.Windows.Input.Cursors.Wait;
+
+                // 1. Update data di memori CurrentCompany
+                CurrentCompany.Data.Name = newName;
+                CurrentCompany.Data.Password = newPass;
+
+                // 2. Persist ke master.db (Biar di ProjectGateWindow datanya berubah)
+                await _masterRepo.Upsert(CurrentCompany.Data);
+
+                // 3. Update identitas di dalam Database Akuntansi lokal (Tabel Config)
+                // Ini penting supaya Header Laporan Neraca/Rugi Laba ikut berubah
+                AccountConfig.Set("CompanyName", newName);
+
+                MessageBox.Show("Identitas Proyek berhasil diperbarui.", "Sukses",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+
+                DialogResult = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Gagal update: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                this.Cursor = System.Windows.Input.Cursors.Arrow;
+            }
         }
+
+        private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
 
         private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (e.Key == System.Windows.Input.Key.Enter) { BtnSave_Click(sender, e); }
-            if (e.Key == System.Windows.Input.Key.Escape) { Close(); }
-        }
-
-        private void TxtKode_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var norm = ProjectCodeUtil.Normalize(TxtKode.Text);
-            if (!string.IsNullOrEmpty(norm)) TxtKode.Text = norm;  // tampilkan 3 digit
-        }
-
-        private void BtnSave_Click(object sender, RoutedEventArgs e)
-        {
-            // normalisasi dulu
-            var kodeNorm = ProjectCodeUtil.Normalize(TxtKode.Text);
-            var nama = (TxtNama.Text ?? "").Trim();
-            var pass = TxtPass.Password ?? "";
-
-            if (string.IsNullOrEmpty(kodeNorm))
-            {
-                MessageBox.Show("Kode proyek harus angka (maks 3 digit).", "AeroGL",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                TxtKode.Focus();
-                return;
-            }
-            if (nama.Length == 0)
-            {
-                MessageBox.Show("Nama proyek wajib diisi.", "AeroGL",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                TxtNama.Focus();
-                return;
-            }
-
-            if (!TxtKode.IsReadOnly) SingleProject.Code = kodeNorm; // simpan sudah dalam format "001"
-            SingleProject.Name = nama;
-            SingleProject.Pass = pass;
-            SingleProject.Save();
-
-            TxtStatus.Text = $"Tersimpan: {SingleProject.Code} — {SingleProject.Name}";
-            MessageBox.Show("Data proyek disimpan.", "AeroGL",
-                MessageBoxButton.OK, MessageBoxImage.Information);
-
-            DialogResult = true;
+            if (e.Key == System.Windows.Input.Key.Enter) BtnSave_Click(sender, e);
+            if (e.Key == System.Windows.Input.Key.Escape) Close();
         }
     }
 }

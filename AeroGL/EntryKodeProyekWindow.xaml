@@ -35,7 +35,7 @@
                     <TextBlock Text="Kode Proyek" Grid.Row="0" Grid.Column="0" Margin="0,2,12,0"
                                Foreground="{StaticResource TextLight}"/>
                     <TextBox x:Name="TxtKode" Grid.Row="0" Grid.Column="1" Height="30" Padding="6"
-                               LostFocus="TxtKode_LostFocus"/>
+         IsReadOnly="True" Background="#15152A" Foreground="#AAA" BorderBrush="#4444FF"/>
 
                     <TextBlock Text="Nama Proyek" Grid.Row="2" Grid.Column="0" Margin="0,2,12,0"
                                Foreground="{StaticResource TextLight}"/>
@@ -49,13 +49,22 @@
         </Border>
 
         <!-- bottom bar -->
-        <DockPanel VerticalAlignment="Bottom" LastChildFill="False">
-            <TextBlock x:Name="TxtStatus" VerticalAlignment="Center"
-                       Foreground="{StaticResource TextLight}" />
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Simpan" Width="110" Margin="0,0,8,0" Click="BtnSave_Click"/>
-                <Button Content="Tutup"  Width="110" Click="BtnClose_Click"/>
+        <Grid VerticalAlignment="Bottom" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="TxtStatus" Grid.Column="0" VerticalAlignment="Center"
+               Foreground="{StaticResource TextLight}" TextTrimming="CharacterEllipsis" 
+               FontStyle="Italic" FontSize="12"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Simpan" Width="110" Margin="0,0,8,0" Click="BtnSave_Click"
+                Background="#2D8F6F" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                <Button Content="Tutup"  Width="110" Click="BtnClose_Click"
+                Background="#FF6060" Foreground="White" BorderThickness="0"/>
             </StackPanel>
-        </DockPanel>
+        </Grid>
     </Grid>
 </Window>

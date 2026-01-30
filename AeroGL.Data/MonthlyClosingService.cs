@@ -1,95 +1,109 @@
-﻿using System;
+﻿using AeroGL.Core;
+using Dapper;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using AeroGL.Core;
-using Dapper;
 
 namespace AeroGL.Data
 {
-    public class MonthlyClosingService
+    public sealed class MonthlyClosingService
     {
         public async Task RunClosing(int year, int month)
         {
-            // Validasi: Bulan 12 tidak boleh pakai menu ini (Harus Year End Menu D)
             if (month < 1 || month >= 12)
-                throw new Exception("Closing Bulanan hanya untuk bulan 1 s/d 11.\nUntuk Akhir Tahun (Bulan 12), gunakan Menu D.");
+                throw new Exception("Closing Bulanan hanya untuk bulan 1 s/d 11. Gunakan Menu D untuk Akhir Tahun.");
 
             int nextMonth = month + 1;
 
             using (var cn = Db.Open())
+            using (var trans = cn.BeginTransaction())
             {
-                using (var trans = cn.BeginTransaction())
+                try
                 {
-                    try
+                    // 1. Ambil Akun Laba Berjalan dari Config (Default 017)
+                    string labaBerjalanCode = await cn.ExecuteScalarAsync<string>(
+                        "SELECT Val FROM Config WHERE Key='LabaBerjalan'", null, trans) ?? "017";
+
+                    // 2. Ambil Semua Master COA untuk mapping Group
+                    var allCoa = (await cn.QueryAsync<Coa>("SELECT * FROM Coa")).ToDictionary(x => x.Code3);
+
+                    // 3. Ambil Saldo Bulan Ini
+                    var sourceBalances = (await cn.QueryAsync<CoaBalance>(@"
+                        SELECT * FROM CoaBalance WHERE Year=@y AND Month=@m",
+                        new { y = year, m = month }, trans)).ToList();
+
+                    // VARIABEL UNTUK MENGHITUNG LABA BERSIH BULAN INI
+                    decimal netProfitMonth = 0;
+
+                    // 4. LOOPING PERTAMA: Hitung Laba Bersih & Proses Carry Forward Akun Biasa
+                    foreach (var b in sourceBalances)
                     {
-                        // 1. Ambil Master COA
-                        // Pastikan Grp (AccountGroup) terambil
-                        var allCoa = (await cn.QueryAsync<Coa>("SELECT * FROM Coa")).ToDictionary(x => x.Code3);
+                        if (!allCoa.ContainsKey(b.Code3)) continue;
+                        var coa = allCoa[b.Code3];
 
-                        // 2. Ambil Saldo Bulan INI (Sumber)
-                        var sourceBalances = await cn.QueryAsync<CoaBalance>(@"
-                            SELECT * FROM CoaBalance 
-                            WHERE Year=@y AND Month=@m",
-                            new { y = year, m = month }, trans);
+                        // Hitung Mutasi Bersih (P&L) atau Saldo Akhir (Neraca)
+                        decimal mutasiDebet = b.Debet;
+                        decimal mutasiKredit = b.Kredit;
+                        decimal endingBalance = (coa.Type == AccountType.Debit)
+                            ? b.Saldo + mutasiDebet - mutasiKredit
+                            : b.Saldo + mutasiKredit - mutasiDebet;
 
-                        foreach (var b in sourceBalances)
+                        // Jika Pendapatan (4) atau Biaya (5), tambahkan ke Net Profit
+                        if (coa.Grp == AccountGroup.Pendapatan || coa.Grp == AccountGroup.Biaya)
                         {
-                            if (!allCoa.ContainsKey(b.Code3)) continue;
-                            var coa = allCoa[b.Code3];
+                            // Rumus: (Kredit - Debet) untuk Pendapatan, kebalikannya untuk Biaya
+                            // Tapi simpelnya: Selisih mutasi mempengaruhi Laba Berjalan
+                            decimal movement = (coa.Type == AccountType.Debit) ? (mutasiDebet - mutasiKredit) : (mutasiKredit - mutasiDebet);
 
-                            // 3. Hitung Saldo Akhir Bulan Ini (Ending Balance)
-                            decimal saldoAkhirBulanIni = 0;
-
-                            // Hitung berdasarkan Normal Debet/Kredit
-                            if (coa.Type == AccountType.Debit)
-                                saldoAkhirBulanIni = b.Saldo + b.Debet - b.Kredit;
-                            else
-                                saldoAkhirBulanIni = b.Saldo + b.Kredit - b.Debet;
-
-                            // 4. Tentukan Saldo Awal Bulan DEPAN
-                            decimal saldoAwalBulanDepan = 0;
-
-                            // --- LOGIC PERUBAHAN (RESET GROUP 4 & 5) ---
-                            // Group 1 (Aktiva), 2 (Hutang), 3 (Modal) -> Saldo DIBAWA (Carry Forward)
-                            // Group 4 (Pendapatan), 5 (Biaya) -> Saldo DI-RESET JADI 0 (Monthly Performance)
-
-                            if (coa.Grp == AccountGroup.Pendapatan || coa.Grp == AccountGroup.Biaya)
-                            {
-                                // Reset jadi 0 supaya laporan bulan depan mulai dari nol
-                                saldoAwalBulanDepan = 0;
-                            }
-                            else
-                            {
-                                // Akun Neraca: Lanjut terus
-                                saldoAwalBulanDepan = saldoAkhirBulanIni;
-                            }
-
-                            // 5. Eksekusi Update ke Database
-                            int affected = await cn.ExecuteAsync(@"
-                                UPDATE CoaBalance SET Saldo = @s 
-                                WHERE Code3=@c AND Year=@y AND Month=@nextM",
-                                new { s = saldoAwalBulanDepan, c = b.Code3, y = year, nextM = nextMonth }, trans);
-
-                            if (affected == 0)
-                            {
-                                // Kalau record bulan depan belum ada, Insert
-                                await cn.ExecuteAsync(@"
-                                    INSERT INTO CoaBalance (Code3, Year, Month, Saldo, Debet, Kredit)
-                                    VALUES (@c, @y, @nextM, @s, 0, 0)",
-                                    new { c = b.Code3, y = year, nextM = nextMonth, s = saldoAwalBulanDepan }, trans);
-                            }
+                            // Grp 4 (Kredit normal), Grp 5 (Debet normal). 
+                            // Laba bertambah jika Kredit > Debet di Grp 4, berkurang jika Debet > Kredit di Grp 5.
+                            if (coa.Grp == AccountGroup.Pendapatan) netProfitMonth += (mutasiKredit - mutasiDebet);
+                            else netProfitMonth -= (mutasiDebet - mutasiKredit);
                         }
 
-                        trans.Commit();
+                        // Tentukan Saldo Awal Bulan Depan
+                        decimal saldoAwalNext = 0;
+
+                        // Akun Neraca (Kecuali Laba Berjalan karena akan diupdate khusus)
+                        if (coa.Grp != AccountGroup.Pendapatan && coa.Grp != AccountGroup.Biaya && b.Code3 != labaBerjalanCode)
+                        {
+                            saldoAwalNext = endingBalance;
+                            await UpsertBalance(cn, b.Code3, year, nextMonth, saldoAwalNext, trans);
+                        }
+                        // Reset Akun P&L jadi 0
+                        else if (coa.Grp == AccountGroup.Pendapatan || coa.Grp == AccountGroup.Biaya)
+                        {
+                            await UpsertBalance(cn, b.Code3, year, nextMonth, 0, trans);
+                        }
                     }
-                    catch (Exception)
-                    {
-                        trans.Rollback();
-                        throw;
-                    }
+
+                    // 5. UPDATE KHUSUS: Akumulasi Laba Berjalan (017)
+                    var currentLabaBal = sourceBalances.FirstOrDefault(x => x.Code3 == labaBerjalanCode);
+                    decimal oldLabaSaldo = currentLabaBal?.Saldo ?? 0;
+                    // Saldo Baru = Saldo Awal Bulan Ini + Profit Bulan Ini
+                    decimal newLabaSaldo = oldLabaSaldo + netProfitMonth;
+
+                    await UpsertBalance(cn, labaBerjalanCode, year, nextMonth, newLabaSaldo, trans);
+
+                    trans.Commit();
+                }
+                catch (Exception)
+                {
+                    trans.Rollback();
+                    throw;
                 }
             }
+        }
+
+        private async Task UpsertBalance(IDbConnection cn, string code3, int y, int m, decimal s, IDbTransaction tx)
+        {
+            const string sql = @"
+                INSERT INTO CoaBalance (Code3, Year, Month, Saldo, Debet, Kredit)
+                VALUES (@c, @y, @m, @s, 0, 0)
+                ON CONFLICT(Code3, Year, Month) DO UPDATE SET Saldo = @s, Debet = 0, Kredit = 0;";
+            await cn.ExecuteAsync(sql, new { c = code3, y = y, m = m, s = s }, tx);
         }
     }
 }
